@@ -17,6 +17,27 @@ export interface Tab {
 export type BackendStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
 
 // ---------------------------------------------------------------------------
+// Domain models (mirror backend Pydantic responses)
+// ---------------------------------------------------------------------------
+
+export interface Project {
+  id: string
+  name: string
+  description: string | null
+  scope: string | null
+  status: 'active' | 'archived' | 'completed'
+  created_at: string
+  updated_at: string
+}
+
+export interface ApiPaginatedResponse<T> {
+  items: T[]
+  total: number
+  skip: number
+  limit: number
+}
+
+// ---------------------------------------------------------------------------
 // WebSocket message protocol
 // ---------------------------------------------------------------------------
 

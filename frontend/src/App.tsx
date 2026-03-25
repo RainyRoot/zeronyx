@@ -38,7 +38,7 @@ export default function App(): JSX.Element {
   return (
     <HashRouter>
       <Routes>
-        <Route element={<AppShell backendStatus={backendStatus} />}>
+        <Route element={<AppShell backendStatus={backendStatus}/>}>
           <Route index element={<DashboardPage />} />
           <Route path="/targets" element={<TargetsPage />} />
           <Route path="/scans" element={<ScansPage />} />

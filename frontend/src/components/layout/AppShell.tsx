@@ -2,14 +2,16 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { TabBar } from './TabBar'
 import { StatusBar } from './StatusBar'
+import { useProjectStore } from '@/stores/projectStore'
 import type { BackendStatus } from '@/types'
 
 interface AppShellProps {
   backendStatus: BackendStatus
-  projectName?: string
 }
 
-export function AppShell({ backendStatus, projectName }: AppShellProps): JSX.Element {
+export function AppShell({ backendStatus }: AppShellProps): JSX.Element {
+  const activeProject = useProjectStore((s) => s.activeProject)
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#0f0f11] text-gray-100">
       <div className="flex flex-1 overflow-hidden">
@@ -21,7 +23,7 @@ export function AppShell({ backendStatus, projectName }: AppShellProps): JSX.Ele
           </main>
         </div>
       </div>
-      <StatusBar backendStatus={backendStatus} projectName={projectName} />
+      <StatusBar backendStatus={backendStatus} projectName={activeProject?.name} />
     </div>
   )
 }
