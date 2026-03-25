@@ -1,19 +1,49 @@
+import logging
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from backend.api.websocket.connection_manager import manager
+
+logger = logging.getLogger("zeronyx.ws")
 router = APIRouter(tags=["websocket"])
 
 
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
 @router.websocket("/ws/scan/{scan_id}")
-async def scan_stream(websocket: WebSocket, scan_id: str):
+async def scan_stream(websocket: WebSocket, scan_id: str) -> None:
+    """Bidirectional WebSocket stream for a single scan session.
+
+    Server → Client message types: connected, output, progress, error, done, ping
+    Client → Server message types: cancel, pong
     """
-    WebSocket endpoint for live scan output streaming.
-    Implemented in task 1.4 (WebSocket Bridge).
-    """
-    await websocket.accept()
+    await manager.connect(scan_id, websocket)
     try:
-        await websocket.send_json({"type": "info", "message": f"Connected to scan {scan_id}"})
-        # Hold the connection until client disconnects
+        await manager.send(websocket, {
+            "type": "connected",
+            "scan_id": scan_id,
+            "timestamp": _now(),
+        })
+
         while True:
-            await websocket.receive_text()
+            data = await websocket.receive_json()
+            msg_type = data.get("type")
+
+            if msg_type == "cancel":
+                logger.info("Cancel requested  scan=%s", scan_id)
+                await manager.send(websocket, {
+                    "type": "done",
+                    "scan_id": scan_id,
+                    "timestamp": _now(),
+                })
+                break
+
+            # pong — keepalive acknowledgement, no reply needed
+
     except WebSocketDisconnect:
         pass
+    finally:
+        await manager.disconnect(scan_id, websocket)
