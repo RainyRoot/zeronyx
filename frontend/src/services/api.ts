@@ -46,6 +46,48 @@ interface ProjectUpdatePayload {
   status?: string
 }
 
+import type { Target, TargetType } from '@/types'
+
+// ---------------------------------------------------------------------------
+// Targets
+// ---------------------------------------------------------------------------
+
+interface TargetCreatePayload {
+  project_id: string
+  value: string
+  type?: TargetType
+  notes?: string | null
+  tags?: string | null
+}
+
+interface TargetUpdatePayload {
+  value?: string
+  type?: TargetType
+  notes?: string | null
+  tags?: string | null
+}
+
+export const targetsApi = {
+  list(projectId: string, params: { skip?: number; limit?: number } = {}): Promise<ApiPaginatedResponse<Target>> {
+    const q = new URLSearchParams({ project_id: projectId })
+    if (params.skip !== undefined) q.set('skip', String(params.skip))
+    if (params.limit !== undefined) q.set('limit', String(params.limit))
+    return request<ApiPaginatedResponse<Target>>('GET', `/api/targets?${q.toString()}`)
+  },
+
+  create(payload: TargetCreatePayload): Promise<Target> {
+    return request<Target>('POST', '/api/targets', payload)
+  },
+
+  update(id: string, payload: TargetUpdatePayload): Promise<Target> {
+    return request<Target>('PATCH', `/api/targets/${id}`, payload)
+  },
+
+  delete(id: string): Promise<void> {
+    return request<void>('DELETE', `/api/targets/${id}`)
+  },
+}
+
 export const projectsApi = {
   list(params: ProjectListParams = {}): Promise<ApiPaginatedResponse<Project>> {
     const q = new URLSearchParams()

@@ -37,6 +37,19 @@ export interface ApiPaginatedResponse<T> {
   limit: number
 }
 
+export type TargetType = 'ip' | 'domain' | 'cidr' | 'url'
+
+export interface Target {
+  id: string
+  project_id: string
+  value: string
+  type: TargetType
+  notes: string | null
+  tags: string | null
+  created_at: string
+  updated_at: string
+}
+
 // ---------------------------------------------------------------------------
 // WebSocket message protocol
 // ---------------------------------------------------------------------------
