@@ -30,3 +30,25 @@
 | [tsconfig.json](tsconfig.json) / [tsconfig.node.json](tsconfig.node.json) | TypeScript Project References |
 
 ---
+
+### ✅ Task 1.2 — Dark Theme UI Shell
+**Datum:** 2026-03-25 | **Branch:** `dev`
+
+| Datei | Zweck |
+|---|---|
+| [frontend/src/lib/utils.ts](frontend/src/lib/utils.ts) | `cn()` Utility (clsx + tailwind-merge) |
+| [frontend/src/types/index.ts](frontend/src/types/index.ts) | Shared TypeScript Types (Tab, PageId, BackendStatus) |
+| [frontend/src/stores/navigationStore.ts](frontend/src/stores/navigationStore.ts) | Zustand Store: Tab-Management, Navigation State |
+| [frontend/src/components/layout/Sidebar.tsx](frontend/src/components/layout/Sidebar.tsx) | Schmale Icon-Sidebar mit Radix Tooltips, aktiver State |
+| [frontend/src/components/layout/TabBar.tsx](frontend/src/components/layout/TabBar.tsx) | Browser-artiger Tab-System mit Close-Button |
+| [frontend/src/components/layout/StatusBar.tsx](frontend/src/components/layout/StatusBar.tsx) | Statusleiste: Backend-Status, Projektname, Version |
+| [frontend/src/components/layout/AppShell.tsx](frontend/src/components/layout/AppShell.tsx) | Layout-Wrapper mit React Router `<Outlet>` |
+| [frontend/src/pages/Dashboard/index.tsx](frontend/src/pages/Dashboard/index.tsx) | Dashboard Stub (Stat-Karten) |
+| [frontend/src/pages/Targets/index.tsx](frontend/src/pages/Targets/index.tsx) | Targets Stub |
+| [frontend/src/pages/Scans/index.tsx](frontend/src/pages/Scans/index.tsx) | Scans Stub |
+| [frontend/src/pages/Findings/index.tsx](frontend/src/pages/Findings/index.tsx) | Findings Stub |
+| [frontend/src/pages/Reports/index.tsx](frontend/src/pages/Reports/index.tsx) | Reports Stub |
+| [frontend/src/pages/Settings/index.tsx](frontend/src/pages/Settings/index.tsx) | Settings Stub |
+| [frontend/src/App.tsx](frontend/src/App.tsx) | HashRouter + Routes + Backend-Health-Polling |
+
+---

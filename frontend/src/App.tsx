@@ -1,11 +1,52 @@
-function App(): JSX.Element {
+import { HashRouter, Routes, Route } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { AppShell } from '@/components/layout/AppShell'
+import { DashboardPage } from '@/pages/Dashboard'
+import { TargetsPage } from '@/pages/Targets'
+import { ScansPage } from '@/pages/Scans'
+import { FindingsPage } from '@/pages/Findings'
+import { ReportsPage } from '@/pages/Reports'
+import { SettingsPage } from '@/pages/Settings'
+import type { BackendStatus } from '@/types'
+
+const BACKEND_URL = 'http://127.0.0.1:8742'
+const HEALTH_INTERVAL_MS = 5000
+
+export default function App(): JSX.Element {
+  const [backendStatus, setBackendStatus] = useState<BackendStatus>('connecting')
+
+  useEffect(() => {
+    let active = true
+
+    const check = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/health`)
+        if (active) setBackendStatus(res.ok ? 'connected' : 'error')
+      } catch {
+        if (active) setBackendStatus('disconnected')
+      }
+    }
+
+    check()
+    const interval = setInterval(check, HEALTH_INTERVAL_MS)
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
+  }, [])
+
   return (
-    <div className="min-h-screen bg-[#0f0f11] text-white flex flex-col items-center justify-center select-none">
-      <h1 className="text-5xl font-bold tracking-tight text-red-500">ZeroNyx</h1>
-      <p className="text-gray-400 mt-3 text-lg">From Zero to Pwned</p>
-      <span className="mt-12 text-xs text-gray-700 font-mono">Phase 1 — Boilerplate</span>
-    </div>
+    <HashRouter>
+      <Routes>
+        <Route element={<AppShell backendStatus={backendStatus} />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="/targets" element={<TargetsPage />} />
+          <Route path="/scans" element={<ScansPage />} />
+          <Route path="/findings" element={<FindingsPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
+      </Routes>
+    </HashRouter>
   )
 }
-
-export default App
