@@ -142,10 +142,31 @@ export interface ScanDetail extends Scan {
   parsed: Record<string, unknown> | null
 }
 
-export interface NmapProfile {
+/** Generic scan profile — tool-specific config fields live in `config`. */
+export interface ScanProfile {
   name: string
   description: string
-  config: { flags: string; ports?: string }
+  config: Record<string, unknown>
+}
+
+/** @deprecated Use ScanProfile */
+export type NmapProfile = ScanProfile
+
+/** A registered tool with its install status. */
+export interface ToolInfo {
+  name: string
+  installed: boolean
+  binary_path: string | null
+}
+
+/** One entry from gobuster parsed results */
+export interface GobusterPath {
+  path?: string
+  subdomain?: string
+  vhost?: string
+  status?: number
+  size?: number | null
+  redirect?: string | null
 }
 
 // ---------------------------------------------------------------------------

@@ -1,10 +1,12 @@
 import { create } from 'zustand'
 import { scansApi } from '@/services/api'
-import type { Scan, NmapProfile, Host, Port } from '@/types'
+import type { Scan, ScanProfile, Host, Port, GobusterPath } from '@/types'
 
 interface ScanResults {
   hosts: Host[]
   ports: Port[]
+  /** Parsed tool output — used by non-nmap tools (gobuster paths, etc.) */
+  parsed: Record<string, unknown> | null
 }
 
 interface ScanState {
@@ -18,8 +20,11 @@ interface ScanState {
   results: ScanResults | null
   isRunning: boolean
 
-  // Profiles cache
-  profiles: NmapProfile[]
+  // Currently selected tool in the UI
+  selectedTool: string
+
+  // Profiles cache (per tool)
+  profiles: ScanProfile[]
   isLoadingProfiles: boolean
 
   // Errors
@@ -32,9 +37,10 @@ interface ScanState {
   cancelActiveScan: () => Promise<void>
   appendOutputLine: (line: string) => void
   setActiveScan: (scan: Scan | null) => void
-  fetchResults: (scanId: string) => Promise<void>
+  fetchResults: (scanId: string, tool: string) => Promise<void>
   clearSession: () => void
   deleteScan: (id: string) => Promise<void>
+  setSelectedTool: (tool: string) => void
 }
 
 export const useScanStore = create<ScanState>((set, get) => ({
@@ -44,6 +50,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
   outputLines: [],
   results: null,
   isRunning: false,
+  selectedTool: 'nmap',
   profiles: [],
   isLoadingProfiles: false,
   error: null,
@@ -59,7 +66,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
   },
 
   fetchProfiles: async (tool) => {
-    set({ isLoadingProfiles: true })
+    set({ isLoadingProfiles: true, profiles: [] })
     try {
       const res = await scansApi.getProfiles(tool)
       set({ profiles: res.profiles, isLoadingProfiles: false })
@@ -103,15 +110,25 @@ export const useScanStore = create<ScanState>((set, get) => ({
     set({ activeScan: scan })
   },
 
-  fetchResults: async (scanId) => {
+  fetchResults: async (scanId, tool) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8742/api/scans/${scanId}/results`)
-      if (res.ok) {
-        const data = await res.json() as { hosts: Host[]; ports: Port[] }
-        set({ results: data })
+      if (tool === 'nmap') {
+        // Nmap: fetch structured hosts + ports
+        const res = await fetch(`http://127.0.0.1:8742/api/scans/${scanId}/results`)
+        if (res.ok) {
+          const data = await res.json() as { hosts: Host[]; ports: Port[] }
+          set({ results: { hosts: data.hosts, ports: data.ports, parsed: null } })
+        }
+      } else {
+        // All other tools: fetch scan detail for parsed output
+        const res = await fetch(`http://127.0.0.1:8742/api/scans/${scanId}`)
+        if (res.ok) {
+          const data = await res.json() as { parsed: Record<string, unknown> | null }
+          set({ results: { hosts: [], ports: [], parsed: data.parsed ?? null } })
+        }
       }
     } catch {
-      // ignore
+      // ignore — results panel simply won't appear
     }
   },
 
@@ -126,4 +143,11 @@ export const useScanStore = create<ScanState>((set, get) => ({
       activeScan: s.activeScan?.id === id ? null : s.activeScan,
     }))
   },
+
+  setSelectedTool: (tool) => {
+    set({ selectedTool: tool })
+  },
 }))
+
+// Re-export GobusterPath so consumers can import from the store barrel if needed
+export type { GobusterPath }
