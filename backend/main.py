@@ -29,10 +29,27 @@ def _run_migrations() -> None:
     logger.info(f"Database ready: {settings.db_path}")
 
 
+def _check_tools() -> None:
+    """Log which external tools are available on startup."""
+    from backend.adapters import list_adapters
+    available = []
+    missing = []
+    for name, cls in list_adapters():
+        if cls().is_installed():
+            available.append(name)
+        else:
+            missing.append(name)
+    if available:
+        logger.info("Tools available: %s", ", ".join(available))
+    if missing:
+        logger.warning("Tools not found (install to use): %s", ", ".join(missing))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"ZeroNyx backend starting (env={settings.env})")
     _run_migrations()
+    _check_tools()
     yield
     logger.info("ZeroNyx backend shutting down")
 
