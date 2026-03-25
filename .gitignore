@@ -44,3 +44,8 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude Code — internal planning docs (local only)
+.claude/
+CLAUDE.md
+PROGRESS.md
