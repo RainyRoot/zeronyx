@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from backend.api.websocket.connection_manager import manager
+from backend.services import task_registry
 
 logger = logging.getLogger("zeronyx.ws")
 router = APIRouter(tags=["websocket"])
@@ -34,11 +35,8 @@ async def scan_stream(websocket: WebSocket, scan_id: str) -> None:
 
             if msg_type == "cancel":
                 logger.info("Cancel requested  scan=%s", scan_id)
-                await manager.send(websocket, {
-                    "type": "done",
-                    "scan_id": scan_id,
-                    "timestamp": _now(),
-                })
+                task_registry.cancel(scan_id)
+                # ScanService will broadcast "done" after CancelledError handling
                 break
 
             # pong — keepalive acknowledgement, no reply needed

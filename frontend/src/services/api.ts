@@ -3,7 +3,7 @@
  * All methods throw an Error with a human-readable message on non-2xx responses.
  */
 
-import type { Project, ApiPaginatedResponse } from '@/types'
+import type { Project, ApiPaginatedResponse, Scan, ScanDetail, NmapProfile } from '@/types'
 
 const BASE = 'http://127.0.0.1:8742'
 
@@ -85,6 +85,56 @@ export const targetsApi = {
 
   delete(id: string): Promise<void> {
     return request<void>('DELETE', `/api/targets/${id}`)
+  },
+}
+
+// ---------------------------------------------------------------------------
+// Scans
+// ---------------------------------------------------------------------------
+
+interface ScanCreatePayload {
+  project_id: string
+  tool: string
+  target_id?: string | null
+  profile?: string | null
+  config?: Record<string, unknown>
+}
+
+export const scansApi = {
+  list(projectId: string, params: { skip?: number; limit?: number; tool?: string } = {}): Promise<ApiPaginatedResponse<Scan>> {
+    const q = new URLSearchParams({ project_id: projectId })
+    if (params.skip !== undefined) q.set('skip', String(params.skip))
+    if (params.limit !== undefined) q.set('limit', String(params.limit))
+    if (params.tool) q.set('tool', params.tool)
+    return request<ApiPaginatedResponse<Scan>>('GET', `/api/scans?${q.toString()}`)
+  },
+
+  get(id: string): Promise<ScanDetail> {
+    return request<ScanDetail>('GET', `/api/scans/${id}`)
+  },
+
+  create(payload: ScanCreatePayload): Promise<Scan> {
+    return request<Scan>('POST', '/api/scans', payload)
+  },
+
+  start(id: string): Promise<Scan> {
+    return request<Scan>('POST', `/api/scans/${id}/start`)
+  },
+
+  cancel(id: string): Promise<Scan> {
+    return request<Scan>('POST', `/api/scans/${id}/cancel`)
+  },
+
+  delete(id: string): Promise<void> {
+    return request<void>('DELETE', `/api/scans/${id}`)
+  },
+
+  getProfiles(tool: string): Promise<{ tool: string; installed: boolean; profiles: NmapProfile[] }> {
+    return request(`GET`, `/api/tools/${tool}/profiles`)
+  },
+
+  listTools(): Promise<{ tools: { name: string; installed: boolean; binary_path: string | null }[] }> {
+    return request('GET', '/api/tools')
   },
 }
 

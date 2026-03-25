@@ -115,3 +115,63 @@ export interface WsPongMessage {
 }
 
 export type WsClientMessage = WsCancelMessage | WsPongMessage
+
+// ---------------------------------------------------------------------------
+// Scans
+// ---------------------------------------------------------------------------
+
+export type ScanStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+
+export interface Scan {
+  id: string
+  project_id: string
+  target_id: string | null
+  tool: string
+  profile: string | null
+  config: Record<string, unknown> | null
+  status: ScanStatus
+  started_at: string | null
+  finished_at: string | null
+  error: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ScanDetail extends Scan {
+  raw_output: string | null
+  parsed: Record<string, unknown> | null
+}
+
+export interface NmapProfile {
+  name: string
+  description: string
+  config: { flags: string; ports?: string }
+}
+
+// ---------------------------------------------------------------------------
+// Hosts & Ports (from scan results, returned by future endpoints)
+// ---------------------------------------------------------------------------
+
+export interface Host {
+  id: string
+  project_id: string
+  ip: string
+  hostname: string | null
+  os: string | null
+  os_accuracy: number | null
+  mac: string | null
+  vendor: string | null
+  state: string
+  last_seen: string | null
+}
+
+export interface Port {
+  id: string
+  host_id: string
+  number: number
+  protocol: string
+  state: string
+  service: string | null
+  version: string | null
+  banner: string | null
+}
