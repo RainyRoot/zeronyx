@@ -52,3 +52,24 @@
 | [frontend/src/App.tsx](frontend/src/App.tsx) | HashRouter + Routes + Backend-Health-Polling |
 
 ---
+
+### ✅ Task 1.3 — Python Backend Setup
+**Datum:** 2026-03-25 | **Branch:** `dev`
+
+| Datei | Zweck |
+|---|---|
+| [backend/config.py](backend/config.py) | pydantic-settings Config (Port, DB-Pfad, Env) |
+| [backend/database.py](backend/database.py) | SQLAlchemy Engine, SessionLocal, `get_db()` Dependency |
+| [backend/models/base.py](backend/models/base.py) | DeclarativeBase, TimestampMixin, `new_uuid()` |
+| [backend/models/project.py](backend/models/project.py) | Project SQLAlchemy Model |
+| [backend/models/__init__.py](backend/models/__init__.py) | Model-Registry für `Base.metadata.create_all()` |
+| [backend/api/routes/projects.py](backend/api/routes/projects.py) | Vollständiges Project CRUD (GET/POST/PATCH/DELETE) |
+| [backend/api/routes/targets.py](backend/api/routes/targets.py) | Targets Route Stub |
+| [backend/api/routes/scans.py](backend/api/routes/scans.py) | Scans Route Stub |
+| [backend/api/routes/findings.py](backend/api/routes/findings.py) | Findings Route Stub |
+| [backend/api/routes/app_settings.py](backend/api/routes/app_settings.py) | Settings Route Stub |
+| [backend/api/websocket/scan_stream.py](backend/api/websocket/scan_stream.py) | WebSocket Stub `/ws/scan/{scan_id}` |
+| [backend/main.py](backend/main.py) | FastAPI App: lifespan, CORS, Router-Registration, Error Handler |
+| [backend/requirements.txt](backend/requirements.txt) | Python Dependencies inkl. pydantic-settings |
+
+---

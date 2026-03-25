@@ -1,31 +1,95 @@
 import argparse
+import logging
+from contextlib import asynccontextmanager
+
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from backend.config import settings
+from backend.database import engine
+from backend import models  # noqa: F401 — registers all models with Base.metadata
+from backend.models.base import Base
+from backend.api.routes import projects, targets, scans, findings, app_settings
+from backend.api.websocket import scan_stream
+
+logging.basicConfig(
+    level=logging.DEBUG if settings.is_dev else logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("zeronyx")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info(f"ZeroNyx backend starting (env={settings.env})")
+    Base.metadata.create_all(bind=engine)
+    logger.info(f"Database ready: {settings.db_path}")
+    yield
+    logger.info("ZeroNyx backend shutting down")
+
 
 app = FastAPI(
     title="ZeroNyx Backend",
     version="0.1.0",
-    docs_url="/docs" if True else None,  # disable in prod later
+    docs_url="/docs" if settings.is_dev else None,
+    redoc_url=None,
+    lifespan=lifespan,
+    redirect_slashes=False,
 )
 
+# CORS — only allow local Electron renderer
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:*", "http://127.0.0.1:*"],
+    allow_origins=[
+        "http://localhost:5173",      # Vite dev server
+        "http://127.0.0.1:5173",
+        "http://localhost:8742",
+        "http://127.0.0.1:8742",
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-@app.get("/health")
+# Global error handler
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled error on {request.url}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
+
+
+# Health
+@app.get("/health", tags=["system"])
 async def health():
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": "0.1.0", "env": settings.env}
+
+
+# REST routers
+app.include_router(projects.router, prefix="/api")
+app.include_router(targets.router, prefix="/api")
+app.include_router(scans.router, prefix="/api")
+app.include_router(findings.router, prefix="/api")
+app.include_router(app_settings.router, prefix="/api")
+
+# WebSocket routers
+app.include_router(scan_stream.router)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ZeroNyx Backend")
-    parser.add_argument("--port", type=int, default=8742, help="Port to listen on")
-    parser.add_argument("--host", type=str, default="127.0.0.1", help="Host to bind to")
+    parser.add_argument("--port", type=int, default=settings.port)
+    parser.add_argument("--host", type=str, default=settings.host)
     args = parser.parse_args()
 
-    uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+    uvicorn.run(
+        app,
+        host=args.host,
+        port=args.port,
+        log_level="debug" if settings.is_dev else "info",
+    )

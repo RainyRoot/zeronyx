@@ -9,15 +9,15 @@
 | Info | Wert |
 |---|---|
 | **Aktuelle Phase** | Phase 1: Foundation |
-| **Aktueller Task** | 1.3 — Python Backend Setup |
-| **Gesamtfortschritt** | 2 / 59 Tasks |
+| **Aktueller Task** | 1.4 — WebSocket Bridge |
+| **Gesamtfortschritt** | 3 / 59 Tasks |
 | **Letztes Update** | 2026-03-25 |
 
 ---
 
 ## Phase 1: Foundation ⏳
 
-**Status:** `IN PROGRESS` | **Fortschritt:** 2/14
+**Status:** `IN PROGRESS` | **Fortschritt:** 3/14
 **Ziel:** Lauffähige Desktop-App mit Grundstruktur, Nmap als erstes Tool integriert.
 **Milestone:** Projekt erstellen → Nmap-Scan starten → Live-Output sehen → Ergebnisse in Tabelle.
 
@@ -25,7 +25,7 @@
 |---|---|---|---|---|
 | 1.1 | Electron + React + TS Boilerplate aufsetzen, Build-Pipeline, Hot Reload | ✅ | 2026-03-25 | electron-vite, npm workspaces, Tailwind inline config |
 | 1.2 | Dark Theme UI Shell: Tailwind + shadcn/ui, Sidebar, Tabs, StatusBar | ✅ | 2026-03-25 | HashRouter, Zustand nav store, Radix Tooltips |
-| 1.3 | Python Backend Setup: FastAPI, Projektstruktur, Auto-Start durch Electron | ⬜ | — | |
+| 1.3 | Python Backend Setup: FastAPI, Projektstruktur, Auto-Start durch Electron | ✅ | 2026-03-25 | pydantic-settings config, SQLAlchemy, CRUD projects endpoint, redirect_slashes=False |
 | 1.4 | WebSocket Bridge: Frontend ↔ Backend, Reconnect-Logic, Message-Protocol | ⬜ | — | |
 | 1.5 | REST API Foundation: Basis-Endpoints, Error Handling, CORS | ⬜ | — | |
 | 1.6 | Datenbank + Migrations: SQLite + SQLAlchemy Models + Alembic | ⬜ | — | |
@@ -160,6 +160,7 @@
 |---|---|---|---|
 | 2026-03-25 | Phase 1 | 1.1 | Electron + React + TS Boilerplate: electron-vite, npm workspaces, Tailwind, FastAPI placeholder, Build-Pipeline ✓ |
 | 2026-03-25 | Phase 1 | 1.2 | Dark Theme UI Shell: Sidebar, TabBar, StatusBar, AppShell, 6 Page-Stubs, React Router, Zustand nav store ✓ |
+| 2026-03-25 | Phase 1 | 1.3 | Python Backend: FastAPI structure, config, SQLAlchemy, Project CRUD, route stubs, lifespan, error handler ✓ |
 
 ---
 
