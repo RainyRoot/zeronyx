@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -54,7 +55,21 @@ app.add_middleware(
 )
 
 
-# Global error handler
+# 422 Validation errors — flatten Pydantic error list into a readable string
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    messages = [
+        f"{' -> '.join(str(l) for l in e['loc'])}: {e['msg']}"
+        for e in errors
+    ]
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "; ".join(messages), "errors": errors},
+    )
+
+
+# 500 Global error handler
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     logger.exception(f"Unhandled error on {request.url}: {exc}")

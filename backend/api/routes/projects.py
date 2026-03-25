@@ -1,14 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
-from backend.database import get_db
-from backend.models.project import Project
+from sqlalchemy.orm import Session
+
+from backend.api.deps import Pagination, get_db
+from backend.api.schemas import PaginatedResponse
 from backend.models.base import new_uuid
+from backend.models.project import Project
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 
-# --- Schemas ---
+# ---------------------------------------------------------------------------
+# Schemas
+# ---------------------------------------------------------------------------
 
 class ProjectCreate(BaseModel):
     name: str
@@ -29,15 +36,28 @@ class ProjectResponse(BaseModel):
     description: str | None
     scope: str | None
     status: str
+    created_at: datetime
+    updated_at: datetime
 
     model_config = {"from_attributes": True}
 
 
-# --- Endpoints ---
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
 
-@router.get("", response_model=list[ProjectResponse])
-def list_projects(db: Session = Depends(get_db)):
-    return db.query(Project).order_by(Project.created_at.desc()).all()
+@router.get("", response_model=PaginatedResponse[ProjectResponse])
+def list_projects(
+    p: Annotated[Pagination, Depends()],
+    db: Session = Depends(get_db),
+    status_filter: str | None = Query(None, alias="status", description="Filter by status (active|archived|completed)"),
+):
+    q = db.query(Project)
+    if status_filter:
+        q = q.filter(Project.status == status_filter)
+    total = q.count()
+    items = q.order_by(Project.created_at.desc()).offset(p.skip).limit(p.limit).all()
+    return PaginatedResponse(items=items, total=total, skip=p.skip, limit=p.limit)
 
 
 @router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
