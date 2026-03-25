@@ -3,15 +3,15 @@ import logging
 from contextlib import asynccontextmanager
 
 import uvicorn
+from alembic import command as alembic_command
+from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.config import settings
-from backend.database import engine
 from backend import models  # noqa: F401 — registers all models with Base.metadata
-from backend.models.base import Base
 from backend.api.routes import projects, targets, scans, findings, app_settings
 from backend.api.websocket import scan_stream
 
@@ -22,11 +22,17 @@ logging.basicConfig(
 logger = logging.getLogger("zeronyx")
 
 
+def _run_migrations() -> None:
+    """Apply any pending Alembic migrations on startup."""
+    cfg = AlembicConfig("alembic.ini")
+    alembic_command.upgrade(cfg, "head")
+    logger.info(f"Database ready: {settings.db_path}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"ZeroNyx backend starting (env={settings.env})")
-    Base.metadata.create_all(bind=engine)
-    logger.info(f"Database ready: {settings.db_path}")
+    _run_migrations()
     yield
     logger.info("ZeroNyx backend shutting down")
 
