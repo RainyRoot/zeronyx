@@ -56,7 +56,7 @@ const TOOLS: ToolMeta[] = [
     color: 'red',
     icon: <Zap size={12} />,
     phase: 2,
-    available: false,
+    available: true,
   },
   {
     id: 'nikto',
@@ -466,6 +466,352 @@ function GobusterForm({
   )
 }
 
+// ---------------------------------------------------------------------------
+// Nuclei form
+// ---------------------------------------------------------------------------
+
+const SEVERITY_LEVELS = ['critical', 'high', 'medium', 'low', 'info'] as const
+type SeverityLevel = typeof SEVERITY_LEVELS[number]
+
+const SEV_STYLE: Record<SeverityLevel, string> = {
+  critical: 'text-red-400 border-red-500/50 bg-red-500/10',
+  high:     'text-orange-400 border-orange-500/50 bg-orange-500/10',
+  medium:   'text-yellow-400 border-yellow-500/50 bg-yellow-500/10',
+  low:      'text-blue-400 border-blue-500/50 bg-blue-500/10',
+  info:     'text-gray-400 border-gray-500/30 bg-gray-500/10',
+}
+
+interface NucleiFormProps {
+  targets: { id: string; value: string }[]
+  selectedTargetId: string
+  onTargetChange: (v: string) => void
+  profiles: { name: string; description: string; config: Record<string, unknown> }[]
+  isLoadingProfiles: boolean
+  selectedProfile: string
+  onProfileChange: (v: string) => void
+  url: string
+  onUrlChange: (v: string) => void
+  severities: SeverityLevel[]
+  onSeveritiesChange: (v: SeverityLevel[]) => void
+  tags: string
+  onTagsChange: (v: string) => void
+  templates: string
+  onTemplatesChange: (v: string) => void
+  threads: string
+  onThreadsChange: (v: string) => void
+}
+
+function NucleiForm({
+  targets, selectedTargetId, onTargetChange,
+  profiles, isLoadingProfiles, selectedProfile, onProfileChange,
+  url, onUrlChange, severities, onSeveritiesChange,
+  tags, onTagsChange, templates, onTemplatesChange,
+  threads, onThreadsChange,
+}: NucleiFormProps) {
+  const currentProfile = profiles.find((p) => p.name === selectedProfile)
+
+  useEffect(() => {
+    if (currentProfile?.config) {
+      const c = currentProfile.config as Record<string, string>
+      if (c.severity) {
+        onSeveritiesChange(c.severity.split(',') as SeverityLevel[])
+      } else {
+        onSeveritiesChange([])
+      }
+      if (c.tags != null) onTagsChange(c.tags)
+      if (c.threads) onThreadsChange(String(c.threads))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProfile])
+
+  // Auto-fill URL from target
+  useEffect(() => {
+    if (selectedTargetId && !url) {
+      const t = targets.find((t) => t.id === selectedTargetId)
+      if (t) {
+        const val = t.value
+        onUrlChange(val.startsWith('http') ? val : `http://${val}`)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTargetId])
+
+  const toggleSeverity = (sev: SeverityLevel) => {
+    if (severities.includes(sev)) {
+      onSeveritiesChange(severities.filter((s) => s !== sev))
+    } else {
+      // Keep in severity order
+      const next = SEVERITY_LEVELS.filter((s) => s === sev || severities.includes(s))
+      onSeveritiesChange(next)
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Target */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">Target</span>
+        <div className="relative">
+          <select
+            value={selectedTargetId}
+            onChange={(e) => onTargetChange(e.target.value)}
+            className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs text-gray-200 appearance-none focus:outline-none focus:border-red-500/50 transition-colors"
+          >
+            <option value="">— manual entry below —</option>
+            {targets.map((t) => (
+              <option key={t.id} value={t.id}>{t.value}</option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none" />
+        </div>
+      </label>
+      {/* URL */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">URL</span>
+        <input
+          type="text"
+          value={url}
+          onChange={(e) => onUrlChange(e.target.value)}
+          placeholder="http://example.com"
+          className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-red-500/50 transition-colors"
+        />
+      </label>
+      {/* Profile */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">Profile</span>
+        <div className="relative">
+          <select
+            value={selectedProfile}
+            onChange={(e) => onProfileChange(e.target.value)}
+            disabled={isLoadingProfiles}
+            className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs text-gray-200 appearance-none focus:outline-none focus:border-red-500/50 transition-colors disabled:opacity-50"
+          >
+            <option value="">— custom —</option>
+            {profiles.map((p) => (
+              <option key={p.name} value={p.name}>{p.name}</option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none" />
+        </div>
+        {currentProfile && (
+          <p className="mt-1 text-[10px] text-gray-600">{currentProfile.description}</p>
+        )}
+      </label>
+      {/* Severity filter */}
+      <div>
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">
+          Severity <span className="text-gray-700 normal-case">(all if none selected)</span>
+        </span>
+        <div className="flex flex-wrap gap-1">
+          {SEVERITY_LEVELS.map((sev) => {
+            const active = severities.includes(sev)
+            return (
+              <button
+                key={sev}
+                onClick={() => toggleSeverity(sev)}
+                className={cn(
+                  'px-2 py-0.5 text-[10px] font-medium rounded border transition-colors',
+                  active ? SEV_STYLE[sev] : 'text-gray-700 border-[#2a2a32] hover:text-gray-500',
+                )}
+              >
+                {sev}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      {/* Tags */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">
+          Tags <span className="text-gray-700 normal-case">(optional)</span>
+        </span>
+        <input
+          type="text"
+          value={tags}
+          onChange={(e) => onTagsChange(e.target.value)}
+          placeholder="cve,rce,sqli"
+          className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-red-500/50 transition-colors"
+        />
+      </label>
+      {/* Custom templates */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">
+          Templates <span className="text-gray-700 normal-case">(optional path)</span>
+        </span>
+        <input
+          type="text"
+          value={templates}
+          onChange={(e) => onTemplatesChange(e.target.value)}
+          placeholder="~/nuclei-templates/cves/"
+          className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-red-500/50 transition-colors"
+        />
+      </label>
+      {/* Threads */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">Threads</span>
+        <input
+          type="number"
+          min={1}
+          max={100}
+          value={threads}
+          onChange={(e) => onThreadsChange(e.target.value)}
+          className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs font-mono text-gray-200 focus:outline-none focus:border-red-500/50 transition-colors"
+        />
+      </label>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Nuclei results panel
+// ---------------------------------------------------------------------------
+
+interface NucleiVuln {
+  template_id: string
+  name: string
+  severity: string
+  host: string
+  matched_at: string
+  tags: string[]
+  description: string
+  cve: string | null
+}
+
+const SEV_BADGE: Record<string, string> = {
+  critical: 'text-red-400 bg-red-500/10 border-red-500/30',
+  high:     'text-orange-400 bg-orange-500/10 border-orange-500/30',
+  medium:   'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
+  low:      'text-blue-400 bg-blue-500/10 border-blue-500/30',
+  info:     'text-gray-400 bg-gray-500/10 border-gray-500/20',
+}
+
+function SeverityBadge({ severity }: { severity: string }) {
+  return (
+    <span className={cn(
+      'inline-flex text-[9px] font-medium border rounded px-1.5 py-0.5 uppercase tracking-wider',
+      SEV_BADGE[severity] ?? SEV_BADGE.info,
+    )}>
+      {severity}
+    </span>
+  )
+}
+
+function NucleiResultsPanel({ parsed }: { parsed: Record<string, unknown> }) {
+  const vulns = (parsed.vulnerabilities as NucleiVuln[]) ?? []
+  const total = (parsed.total_found as number) ?? vulns.length
+  const [selected, setSelected] = useState<NucleiVuln | null>(null)
+
+  // Severity counts for header summary
+  const counts = vulns.reduce<Record<string, number>>((acc, v) => {
+    acc[v.severity] = (acc[v.severity] ?? 0) + 1
+    return acc
+  }, {})
+
+  if (vulns.length === 0) {
+    return (
+      <div className="shrink-0 border-t border-[#2a2a32] px-4 py-4 flex items-center gap-2 text-xs text-gray-600">
+        <CheckCircle2 size={12} className="text-green-500/60" />
+        No vulnerabilities found.
+      </div>
+    )
+  }
+
+  return (
+    <div className="shrink-0 border-t border-[#2a2a32] flex" style={{ maxHeight: '45%' }}>
+      {/* Left: findings list */}
+      <div className="flex flex-col border-r border-[#2a2a32]" style={{ width: '55%' }}>
+        {/* Header */}
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-[#2a2a32] shrink-0">
+          <Zap size={11} className="text-red-400" />
+          <span className="text-[10px] font-medium text-gray-300">Findings ({total})</span>
+          <div className="flex gap-1 ml-auto">
+            {(['critical', 'high', 'medium', 'low', 'info'] as const).map((sev) =>
+              counts[sev] ? (
+                <span key={sev} className={cn('text-[9px] font-medium border rounded px-1 py-0.5', SEV_BADGE[sev])}>
+                  {counts[sev]}
+                </span>
+              ) : null,
+            )}
+          </div>
+        </div>
+        {/* Table */}
+        <div className="overflow-y-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-wider text-gray-700 border-b border-[#2a2a32]">
+                <th className="text-left px-3 py-1.5">Severity</th>
+                <th className="text-left px-3 py-1.5">Name</th>
+                <th className="text-left px-3 py-1.5">CVE</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#1e1e24]">
+              {vulns.map((v, i) => (
+                <tr
+                  key={i}
+                  onClick={() => setSelected(selected?.template_id === v.template_id && selected?.matched_at === v.matched_at ? null : v)}
+                  className={cn(
+                    'cursor-pointer hover:bg-white/[0.03] transition-colors',
+                    selected === v && 'bg-white/[0.05]',
+                  )}
+                >
+                  <td className="px-3 py-1.5"><SeverityBadge severity={v.severity} /></td>
+                  <td className="px-3 py-1.5 text-gray-300 truncate max-w-[160px]" title={v.name}>{v.name}</td>
+                  <td className="px-3 py-1.5 font-mono text-[9px] text-gray-600">{v.cve ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {/* Right: detail panel */}
+      <div className="flex-1 overflow-y-auto p-3">
+        {selected ? (
+          <div className="space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-xs font-semibold text-gray-200 leading-tight">{selected.name}</p>
+              <SeverityBadge severity={selected.severity} />
+            </div>
+            {selected.cve && (
+              <p className="text-[10px] font-mono text-blue-400">{selected.cve}</p>
+            )}
+            <div className="space-y-1">
+              <p className="text-[9px] uppercase tracking-wider text-gray-700">Template</p>
+              <p className="text-[10px] font-mono text-gray-500">{selected.template_id}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[9px] uppercase tracking-wider text-gray-700">Matched at</p>
+              <p className="text-[10px] font-mono text-orange-400/80 break-all">{selected.matched_at}</p>
+            </div>
+            {selected.description && (
+              <div className="space-y-1">
+                <p className="text-[9px] uppercase tracking-wider text-gray-700">Description</p>
+                <p className="text-[10px] text-gray-500 leading-relaxed">{selected.description}</p>
+              </div>
+            )}
+            {selected.tags?.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {selected.tags.map((tag, i) => (
+                  <span key={i} className="text-[9px] text-gray-700 border border-[#2a2a32] rounded px-1 py-0.5">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full text-[10px] text-gray-700">
+            Click a finding to see details
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Coming soon placeholder
+// ---------------------------------------------------------------------------
+
 function ComingSoonForm({ tool }: { tool: string }) {
   const meta = TOOLS.find((t) => t.id === tool)
   return (
@@ -626,6 +972,15 @@ export function ScansPage(): JSX.Element {
   const [gobusterExtensions, setGobusterExtensions] = useState('')
   const [gobusterThreads, setGobusterThreads] = useState('10')
 
+  // ---- nuclei form state ----
+  const [nucleiTargetId, setNucleiTargetId] = useState('')
+  const [nucleiProfile, setNucleiProfile] = useState('')
+  const [nucleiUrl, setNucleiUrl] = useState('')
+  const [nucleiSeverities, setNucleiSeverities] = useState<SeverityLevel[]>([])
+  const [nucleiTags, setNucleiTags] = useState('')
+  const [nucleiTemplates, setNucleiTemplates] = useState('')
+  const [nucleiThreads, setNucleiThreads] = useState('25')
+
   const outputRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll output
@@ -700,14 +1055,29 @@ export function ScansPage(): JSX.Element {
       }
       if (gobusterExtensions) config.extensions = gobusterExtensions
       if (gobusterTargetId) targetId = gobusterTargetId
+    } else if (selectedTool === 'nuclei') {
+      config = {
+        url: nucleiUrl,
+        threads: parseInt(nucleiThreads, 10) || 25,
+      }
+      if (nucleiSeverities.length > 0) config.severity = nucleiSeverities.join(',')
+      if (nucleiTags) config.tags = nucleiTags
+      if (nucleiTemplates) config.templates = nucleiTemplates
+      if (nucleiTargetId) targetId = nucleiTargetId
     }
+
+    const activeProfile =
+      selectedTool === 'nmap' ? nmapProfile
+      : selectedTool === 'gobuster' ? gobusterProfile
+      : selectedTool === 'nuclei' ? nucleiProfile
+      : null
 
     try {
       await startScan(
         activeProject.id,
         targetId,
         selectedTool,
-        (selectedTool === 'nmap' ? nmapProfile : gobusterProfile) || null,
+        activeProfile || null,
         config,
       )
     } catch (e) {
@@ -741,6 +1111,7 @@ export function ScansPage(): JSX.Element {
     if (isRunning) return false
     if (selectedTool === 'nmap') return !!(nmapFlags || nmapProfile)
     if (selectedTool === 'gobuster') return !!(gobusterUrl && gobusterWordlist)
+    if (selectedTool === 'nuclei') return !!nucleiUrl
     return false
   })()
 
@@ -749,6 +1120,7 @@ export function ScansPage(): JSX.Element {
     canStart ? `bg-opacity-90 hover:bg-opacity-100` : 'opacity-30 cursor-not-allowed',
     selectedTool === 'nmap'     && (canStart ? 'bg-blue-600 hover:bg-blue-500'     : 'bg-blue-600'),
     selectedTool === 'gobuster' && (canStart ? 'bg-orange-600 hover:bg-orange-500' : 'bg-orange-600'),
+    selectedTool === 'nuclei'   && (canStart ? 'bg-red-700 hover:bg-red-600'       : 'bg-red-700'),
   )
 
   // ---- No active project ----
@@ -820,7 +1192,28 @@ export function ScansPage(): JSX.Element {
               onThreadsChange={setGobusterThreads}
             />
           )}
-          {!['nmap', 'gobuster'].includes(selectedTool) && (
+          {selectedTool === 'nuclei' && (
+            <NucleiForm
+              targets={targets}
+              selectedTargetId={nucleiTargetId}
+              onTargetChange={setNucleiTargetId}
+              profiles={profiles}
+              isLoadingProfiles={isLoadingProfiles}
+              selectedProfile={nucleiProfile}
+              onProfileChange={setNucleiProfile}
+              url={nucleiUrl}
+              onUrlChange={setNucleiUrl}
+              severities={nucleiSeverities}
+              onSeveritiesChange={setNucleiSeverities}
+              tags={nucleiTags}
+              onTagsChange={setNucleiTags}
+              templates={nucleiTemplates}
+              onTemplatesChange={setNucleiTemplates}
+              threads={nucleiThreads}
+              onThreadsChange={setNucleiThreads}
+            />
+          )}
+          {!['nmap', 'gobuster', 'nuclei'].includes(selectedTool) && (
             <ComingSoonForm tool={selectedTool} />
           )}
 
@@ -937,6 +1330,9 @@ export function ScansPage(): JSX.Element {
               )}
               {activeScan.tool === 'gobuster' && results.parsed && (
                 <GobusterResultsPanel parsed={results.parsed} />
+              )}
+              {activeScan.tool === 'nuclei' && results.parsed && (
+                <NucleiResultsPanel parsed={results.parsed} />
               )}
             </>
           )}
