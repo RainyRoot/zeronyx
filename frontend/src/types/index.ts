@@ -159,6 +159,15 @@ export interface ToolInfo {
   binary_path: string | null
 }
 
+/** One found credential from hydra parsed results */
+export interface HydraCredential {
+  host: string
+  port: number
+  service: string
+  username: string
+  password: string
+}
+
 /** One entry from gobuster parsed results */
 export interface GobusterPath {
   path?: string

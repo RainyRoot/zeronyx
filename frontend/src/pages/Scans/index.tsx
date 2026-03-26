@@ -9,7 +9,7 @@ import { useTargetStore } from '@/stores/targetStore'
 import { useScanStore } from '@/stores/scanStore'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { cn } from '@/lib/utils'
-import type { Scan, ScanStatus, WsServerMessage, Host, Port, GobusterPath } from '@/types'
+import type { Scan, ScanStatus, WsServerMessage, Host, Port, GobusterPath, HydraCredential } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Tool definitions — controls the selector bar and which form is rendered
@@ -76,7 +76,7 @@ const TOOLS: ToolMeta[] = [
     color: 'purple',
     icon: <Server size={12} />,
     phase: 2,
-    available: false,
+    available: true,
   },
   {
     id: 'searchsploit',
@@ -1144,6 +1144,307 @@ function NiktoResultsPanel({ parsed }: { parsed: Record<string, unknown> }) {
 }
 
 // ---------------------------------------------------------------------------
+// Hydra form
+// ---------------------------------------------------------------------------
+
+const HYDRA_SERVICES = [
+  { id: 'ssh',            label: 'SSH' },
+  { id: 'ftp',            label: 'FTP' },
+  { id: 'telnet',         label: 'Telnet' },
+  { id: 'http-get',       label: 'HTTP GET' },
+  { id: 'http-post-form', label: 'HTTP POST' },
+  { id: 'smb',            label: 'SMB' },
+  { id: 'rdp',            label: 'RDP' },
+  { id: 'mysql',          label: 'MySQL' },
+  { id: 'postgres',       label: 'PgSQL' },
+  { id: 'vnc',            label: 'VNC' },
+] as const
+
+interface HydraFormProps {
+  targets: { id: string; value: string }[]
+  selectedTargetId: string
+  onTargetChange: (v: string) => void
+  profiles: { name: string; description: string; config: Record<string, unknown> }[]
+  isLoadingProfiles: boolean
+  selectedProfile: string
+  onProfileChange: (v: string) => void
+  host: string
+  onHostChange: (v: string) => void
+  service: string
+  onServiceChange: (v: string) => void
+  username: string
+  onUsernameChange: (v: string) => void
+  userlist: string
+  onUserlistChange: (v: string) => void
+  passlist: string
+  onPasslistChange: (v: string) => void
+  threads: string
+  onThreadsChange: (v: string) => void
+  stopOnFirst: boolean
+  onStopOnFirstChange: (v: boolean) => void
+  httpPath: string
+  onHttpPathChange: (v: string) => void
+}
+
+function HydraForm({
+  targets, selectedTargetId, onTargetChange,
+  profiles, isLoadingProfiles, selectedProfile, onProfileChange,
+  host, onHostChange, service, onServiceChange,
+  username, onUsernameChange, userlist, onUserlistChange,
+  passlist, onPasslistChange, threads, onThreadsChange,
+  stopOnFirst, onStopOnFirstChange, httpPath, onHttpPathChange,
+}: HydraFormProps) {
+  const currentProfile = profiles.find((p) => p.name === selectedProfile)
+
+  useEffect(() => {
+    if (currentProfile?.config) {
+      const c = currentProfile.config as Record<string, unknown>
+      if (c.service)   onServiceChange(String(c.service))
+      if (c.userlist)  onUserlistChange(String(c.userlist))
+      if (c.username)  onUsernameChange(String(c.username))
+      if (c.passlist)  onPasslistChange(String(c.passlist))
+      if (c.threads)   onThreadsChange(String(c.threads))
+      if (typeof c.stop_on_first === 'boolean') onStopOnFirstChange(c.stop_on_first)
+      if (c.http_path) onHttpPathChange(String(c.http_path))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProfile])
+
+  // Auto-fill host from target
+  useEffect(() => {
+    if (selectedTargetId && !host) {
+      const t = targets.find((t) => t.id === selectedTargetId)
+      if (t) {
+        onHostChange(t.value.replace(/^https?:\/\//, '').replace(/\/.*$/, ''))
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTargetId])
+
+  const isHttp = service === 'http-get' || service === 'http-post-form'
+
+  return (
+    <div className="space-y-3">
+      {/* Rate-limit warning */}
+      <div className="flex items-start gap-2 px-2.5 py-2 bg-purple-500/5 border border-purple-500/20 rounded-lg">
+        <AlertCircle size={10} className="text-purple-400 shrink-0 mt-0.5" />
+        <p className="text-[9px] text-purple-400/80 leading-relaxed">
+          Only use against systems you are authorized to test. Brute-force attacks may trigger account lockouts.
+        </p>
+      </div>
+
+      {/* Target selector */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">Target</span>
+        <div className="relative">
+          <select
+            value={selectedTargetId}
+            onChange={(e) => onTargetChange(e.target.value)}
+            className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs text-gray-200 appearance-none focus:outline-none focus:border-purple-500/50 transition-colors"
+          >
+            <option value="">— manual entry below —</option>
+            {targets.map((t) => (
+              <option key={t.id} value={t.id}>{t.value}</option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none" />
+        </div>
+      </label>
+
+      {/* Host */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">Host / IP</span>
+        <input
+          type="text"
+          value={host}
+          onChange={(e) => onHostChange(e.target.value)}
+          placeholder="192.168.1.1"
+          className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-purple-500/50 transition-colors"
+        />
+      </label>
+
+      {/* Service */}
+      <div>
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">Service</span>
+        <div className="flex flex-wrap gap-1">
+          {HYDRA_SERVICES.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => onServiceChange(s.id)}
+              className={cn(
+                'px-2 py-0.5 text-[10px] font-medium rounded border transition-colors',
+                service === s.id
+                  ? 'text-purple-300 border-purple-500/50 bg-purple-500/10'
+                  : 'text-gray-700 border-[#2a2a32] hover:text-gray-500',
+              )}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Profile */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">Profile</span>
+        <div className="relative">
+          <select
+            value={selectedProfile}
+            onChange={(e) => onProfileChange(e.target.value)}
+            disabled={isLoadingProfiles}
+            className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs text-gray-200 appearance-none focus:outline-none focus:border-purple-500/50 transition-colors disabled:opacity-50"
+          >
+            <option value="">— custom —</option>
+            {profiles.map((p) => (
+              <option key={p.name} value={p.name}>{p.name}</option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none" />
+        </div>
+        {currentProfile && (
+          <p className="mt-1 text-[10px] text-gray-600">{currentProfile.description}</p>
+        )}
+      </label>
+
+      {/* Username / userlist */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">
+          Username <span className="text-gray-700 normal-case">(or leave blank for list)</span>
+        </span>
+        <input
+          type="text"
+          value={username}
+          onChange={(e) => onUsernameChange(e.target.value)}
+          placeholder="admin"
+          className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-purple-500/50 transition-colors"
+        />
+      </label>
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">
+          Username list <span className="text-gray-700 normal-case">(optional path)</span>
+        </span>
+        <input
+          type="text"
+          value={userlist}
+          onChange={(e) => onUserlistChange(e.target.value)}
+          placeholder="/usr/share/wordlists/metasploit/unix_users.txt"
+          className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-purple-500/50 transition-colors"
+        />
+      </label>
+
+      {/* Password list */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">Password list</span>
+        <input
+          type="text"
+          value={passlist}
+          onChange={(e) => onPasslistChange(e.target.value)}
+          placeholder="/usr/share/wordlists/rockyou.txt"
+          className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-purple-500/50 transition-colors"
+        />
+      </label>
+
+      {/* HTTP path — only for http services */}
+      {isHttp && (
+        <label className="block">
+          <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">HTTP path</span>
+          <input
+            type="text"
+            value={httpPath}
+            onChange={(e) => onHttpPathChange(e.target.value)}
+            placeholder="/login"
+            className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-purple-500/50 transition-colors"
+          />
+        </label>
+      )}
+
+      {/* Threads + stop toggle */}
+      <div className="flex items-end gap-3">
+        <label className="flex-1 block">
+          <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">Threads</span>
+          <input
+            type="number"
+            min={1}
+            max={64}
+            value={threads}
+            onChange={(e) => onThreadsChange(e.target.value)}
+            className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs font-mono text-gray-200 focus:outline-none focus:border-purple-500/50 transition-colors"
+          />
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer select-none mb-2">
+          <div
+            onClick={() => onStopOnFirstChange(!stopOnFirst)}
+            className={cn(
+              'w-8 h-4 rounded-full transition-colors relative',
+              stopOnFirst ? 'bg-purple-500/40' : 'bg-[#2a2a32]',
+            )}
+          >
+            <div className={cn(
+              'absolute top-0.5 w-3 h-3 rounded-full transition-transform',
+              stopOnFirst ? 'translate-x-4 bg-purple-400' : 'translate-x-0.5 bg-gray-600',
+            )} />
+          </div>
+          <span className="text-[10px] text-gray-600">Stop on hit</span>
+        </label>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Hydra results panel
+// ---------------------------------------------------------------------------
+
+function HydraResultsPanel({ parsed }: { parsed: Record<string, unknown> }) {
+  const creds = (parsed.credentials as HydraCredential[]) ?? []
+  const total = (parsed.total_found as number) ?? creds.length
+
+  if (creds.length === 0) {
+    return (
+      <div className="shrink-0 border-t border-[#2a2a32] px-4 py-4 flex items-center gap-2 text-xs text-gray-600">
+        <CheckCircle2 size={12} className="text-gray-600/60" />
+        No credentials found.
+      </div>
+    )
+  }
+
+  return (
+    <div className="shrink-0 border-t border-[#2a2a32]" style={{ maxHeight: '40%' }}>
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-[#2a2a32]">
+        <Server size={11} className="text-purple-400" />
+        <span className="text-[10px] font-medium text-gray-300">Credentials Found ({total})</span>
+      </div>
+      <div className="overflow-auto" style={{ maxHeight: 'calc(40vh - 36px)' }}>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-[10px] uppercase tracking-wider text-gray-700 border-b border-[#2a2a32]">
+              <th className="text-left px-4 py-2">Service</th>
+              <th className="text-left px-4 py-2">Host</th>
+              <th className="text-left px-4 py-2">Username</th>
+              <th className="text-left px-4 py-2">Password</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#1e1e24]">
+            {creds.map((c, i) => (
+              <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                <td className="px-4 py-2">
+                  <span className="text-[9px] font-mono text-purple-400 bg-purple-500/10 border border-purple-500/30 rounded px-1.5 py-0.5">
+                    {c.service}:{c.port}
+                  </span>
+                </td>
+                <td className="px-4 py-2 font-mono text-gray-400 text-[10px]">{c.host}</td>
+                <td className="px-4 py-2 font-mono text-green-400/90 font-medium">{c.username}</td>
+                <td className="px-4 py-2 font-mono text-yellow-400/90 font-medium">{c.password}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Coming soon placeholder
 // ---------------------------------------------------------------------------
 
@@ -1316,6 +1617,18 @@ export function ScansPage(): JSX.Element {
   const [niktoTimeout, setNiktoTimeout] = useState('10')
   const [niktoMaxtime, setNiktoMaxtime] = useState('')
 
+  // ---- hydra form state ----
+  const [hydraTargetId, setHydraTargetId] = useState('')
+  const [hydraProfile, setHydraProfile] = useState('')
+  const [hydraHost, setHydraHost] = useState('')
+  const [hydraService, setHydraService] = useState('ssh')
+  const [hydraUsername, setHydraUsername] = useState('')
+  const [hydraUserlist, setHydraUserlist] = useState('')
+  const [hydraPasslist, setHydraPasslist] = useState('')
+  const [hydraThreads, setHydraThreads] = useState('16')
+  const [hydraStopOnFirst, setHydraStopOnFirst] = useState(true)
+  const [hydraHttpPath, setHydraHttpPath] = useState('/')
+
   // ---- nuclei form state ----
   const [nucleiTargetId, setNucleiTargetId] = useState('')
   const [nucleiProfile, setNucleiProfile] = useState('')
@@ -1414,6 +1727,20 @@ export function ScansPage(): JSX.Element {
       if (niktoSsl) config.ssl = true
       if (niktoMaxtime) config.maxtime = niktoMaxtime
       if (niktoTargetId) targetId = niktoTargetId
+    } else if (selectedTool === 'hydra') {
+      config = {
+        host: hydraHost,
+        service: hydraService,
+        threads: parseInt(hydraThreads, 10) || 16,
+        stop_on_first: hydraStopOnFirst,
+      }
+      if (hydraUsername) config.username = hydraUsername
+      if (hydraUserlist) config.userlist = hydraUserlist
+      if (hydraPasslist) config.passlist = hydraPasslist
+      if (hydraHttpPath && (hydraService === 'http-get' || hydraService === 'http-post-form')) {
+        config.http_path = hydraHttpPath
+      }
+      if (hydraTargetId) targetId = hydraTargetId
     }
 
     const activeProfile =
@@ -1421,6 +1748,7 @@ export function ScansPage(): JSX.Element {
       : selectedTool === 'gobuster' ? gobusterProfile
       : selectedTool === 'nuclei'   ? nucleiProfile
       : selectedTool === 'nikto'    ? niktoProfile
+      : selectedTool === 'hydra'    ? hydraProfile
       : null
 
     try {
@@ -1464,6 +1792,7 @@ export function ScansPage(): JSX.Element {
     if (selectedTool === 'gobuster') return !!(gobusterUrl && gobusterWordlist)
     if (selectedTool === 'nuclei') return !!nucleiUrl
     if (selectedTool === 'nikto') return !!niktoUrl
+    if (selectedTool === 'hydra') return !!(hydraHost && hydraPasslist)
     return false
   })()
 
@@ -1474,6 +1803,7 @@ export function ScansPage(): JSX.Element {
     selectedTool === 'gobuster' && (canStart ? 'bg-orange-600 hover:bg-orange-500' : 'bg-orange-600'),
     selectedTool === 'nuclei'   && (canStart ? 'bg-red-700 hover:bg-red-600'         : 'bg-red-700'),
     selectedTool === 'nikto'    && (canStart ? 'bg-yellow-700 hover:bg-yellow-600'   : 'bg-yellow-700'),
+    selectedTool === 'hydra'    && (canStart ? 'bg-purple-700 hover:bg-purple-600'   : 'bg-purple-700'),
   )
 
   // ---- No active project ----
@@ -1587,7 +1917,34 @@ export function ScansPage(): JSX.Element {
               onMaxtimeChange={setNiktoMaxtime}
             />
           )}
-          {!['nmap', 'gobuster', 'nuclei', 'nikto'].includes(selectedTool) && (
+          {selectedTool === 'hydra' && (
+            <HydraForm
+              targets={targets}
+              selectedTargetId={hydraTargetId}
+              onTargetChange={setHydraTargetId}
+              profiles={profiles}
+              isLoadingProfiles={isLoadingProfiles}
+              selectedProfile={hydraProfile}
+              onProfileChange={setHydraProfile}
+              host={hydraHost}
+              onHostChange={setHydraHost}
+              service={hydraService}
+              onServiceChange={setHydraService}
+              username={hydraUsername}
+              onUsernameChange={setHydraUsername}
+              userlist={hydraUserlist}
+              onUserlistChange={setHydraUserlist}
+              passlist={hydraPasslist}
+              onPasslistChange={setHydraPasslist}
+              threads={hydraThreads}
+              onThreadsChange={setHydraThreads}
+              stopOnFirst={hydraStopOnFirst}
+              onStopOnFirstChange={setHydraStopOnFirst}
+              httpPath={hydraHttpPath}
+              onHttpPathChange={setHydraHttpPath}
+            />
+          )}
+          {!['nmap', 'gobuster', 'nuclei', 'nikto', 'hydra'].includes(selectedTool) && (
             <ComingSoonForm tool={selectedTool} />
           )}
 
@@ -1710,6 +2067,9 @@ export function ScansPage(): JSX.Element {
               )}
               {activeScan.tool === 'nikto' && results.parsed && (
                 <NiktoResultsPanel parsed={results.parsed} />
+              )}
+              {activeScan.tool === 'hydra' && results.parsed && (
+                <HydraResultsPanel parsed={results.parsed} />
               )}
             </>
           )}
