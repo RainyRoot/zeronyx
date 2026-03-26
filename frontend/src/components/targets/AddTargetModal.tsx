@@ -6,7 +6,7 @@ import type { TargetType } from '@/types'
 interface AddTargetModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (value: string, type: TargetType, notes: string | null) => Promise<void>
+  onSubmit: (value: string, type: TargetType, notes: string | null, tags: string | null) => Promise<void>
 }
 
 const TARGET_TYPES: { value: TargetType; label: string; example: string }[] = [
@@ -31,6 +31,7 @@ export function AddTargetModal({ open, onClose, onSubmit }: AddTargetModalProps)
   const [type, setType] = useState<TargetType>('ip')
   const [typeOverridden, setTypeOverridden] = useState(false)
   const [notes, setNotes] = useState('')
+  const [tags, setTags] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -41,6 +42,7 @@ export function AddTargetModal({ open, onClose, onSubmit }: AddTargetModalProps)
       setType('ip')
       setTypeOverridden(false)
       setNotes('')
+      setTags('')
       setError(null)
       setTimeout(() => inputRef.current?.focus(), 50)
     }
@@ -63,7 +65,7 @@ export function AddTargetModal({ open, onClose, onSubmit }: AddTargetModalProps)
     setLoading(true)
     setError(null)
     try {
-      await onSubmit(trimmed, type, notes.trim() || null)
+      await onSubmit(trimmed, type, notes.trim() || null, tags.trim() || null)
       onClose()
     } catch (e) {
       setError((e as Error).message)
@@ -146,6 +148,23 @@ export function AddTargetModal({ open, onClose, onSubmit }: AddTargetModalProps)
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Primary web server, in-scope per rules of engagement"
+              className={cn(
+                'bg-[#111114] border border-[#2a2a32] rounded-lg px-3 py-2 text-sm text-gray-100',
+                'placeholder:text-gray-600 outline-none',
+                'focus:ring-1 focus:ring-red-500/50 focus:border-red-500/50 transition-colors'
+              )}
+            />
+          </div>
+
+          {/* Tags */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs text-gray-400 font-medium">
+              Tags <span className="text-gray-600">(optional, comma-separated)</span>
+            </label>
+            <input
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="e.g. web, dmz, critical"
               className={cn(
                 'bg-[#111114] border border-[#2a2a32] rounded-lg px-3 py-2 text-sm text-gray-100',
                 'placeholder:text-gray-600 outline-none',
