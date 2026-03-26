@@ -159,6 +159,18 @@ export interface ToolInfo {
   binary_path: string | null
 }
 
+/** One exploit/shellcode entry from searchsploit parsed results */
+export interface SearchSploitExploit {
+  edb_id: string
+  title: string
+  date: string
+  type: string
+  platform: string
+  path: string
+  cve: string | null
+  severity: string
+}
+
 /** One found credential from hydra parsed results */
 export interface HydraCredential {
   host: string

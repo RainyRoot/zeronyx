@@ -9,7 +9,7 @@ import { useTargetStore } from '@/stores/targetStore'
 import { useScanStore } from '@/stores/scanStore'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { cn } from '@/lib/utils'
-import type { Scan, ScanStatus, WsServerMessage, Host, Port, GobusterPath, HydraCredential } from '@/types'
+import type { Scan, ScanStatus, WsServerMessage, Host, Port, GobusterPath, HydraCredential, SearchSploitExploit } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Tool definitions — controls the selector bar and which form is rendered
@@ -86,7 +86,7 @@ const TOOLS: ToolMeta[] = [
     color: 'green',
     icon: <Search size={12} />,
     phase: 2,
-    available: false,
+    available: true,
   },
 ]
 
@@ -1445,6 +1445,314 @@ function HydraResultsPanel({ parsed }: { parsed: Record<string, unknown> }) {
 }
 
 // ---------------------------------------------------------------------------
+// SearchSploit form
+// ---------------------------------------------------------------------------
+
+const SPLOIT_SEV_BADGE: Record<string, string> = {
+  critical: 'text-red-400 bg-red-500/10 border-red-500/30',
+  high:     'text-orange-400 bg-orange-500/10 border-orange-500/30',
+  medium:   'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
+  low:      'text-blue-400 bg-blue-500/10 border-blue-500/30',
+  info:     'text-gray-400 bg-gray-500/10 border-gray-500/20',
+}
+
+interface SearchSploitFormProps {
+  profiles: { name: string; description: string; config: Record<string, unknown> }[]
+  isLoadingProfiles: boolean
+  selectedProfile: string
+  onProfileChange: (v: string) => void
+  query: string
+  onQueryChange: (v: string) => void
+  titleOnly: boolean
+  onTitleOnlyChange: (v: boolean) => void
+  resultType: string
+  onResultTypeChange: (v: string) => void
+}
+
+const SPLOIT_RESULT_TYPES = [
+  { id: 'all',       label: 'All' },
+  { id: 'exploits',  label: 'Exploits' },
+  { id: 'shellcode', label: 'Shellcode' },
+] as const
+
+function SearchSploitForm({
+  profiles, isLoadingProfiles, selectedProfile, onProfileChange,
+  query, onQueryChange, titleOnly, onTitleOnlyChange,
+  resultType, onResultTypeChange,
+}: SearchSploitFormProps) {
+  const currentProfile = profiles.find((p) => p.name === selectedProfile)
+
+  useEffect(() => {
+    if (currentProfile?.config) {
+      const c = currentProfile.config as Record<string, unknown>
+      if (typeof c.title_only === 'boolean') onTitleOnlyChange(c.title_only)
+      if (c.type) onResultTypeChange(String(c.type))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProfile])
+
+  return (
+    <div className="space-y-3">
+      {/* Query */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">Search query</span>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => onQueryChange(e.target.value)}
+          placeholder="Apache 2.4.49 or CVE-2021-41773"
+          className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-green-500/50 transition-colors"
+        />
+        <p className="mt-1 text-[9px] text-gray-700">Multiple terms are AND-ed. Searches local Exploit-DB copy.</p>
+      </label>
+
+      {/* Profile */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">Profile</span>
+        <div className="relative">
+          <select
+            value={selectedProfile}
+            onChange={(e) => onProfileChange(e.target.value)}
+            disabled={isLoadingProfiles}
+            className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs text-gray-200 appearance-none focus:outline-none focus:border-green-500/50 transition-colors disabled:opacity-50"
+          >
+            <option value="">— custom —</option>
+            {profiles.map((p) => (
+              <option key={p.name} value={p.name}>{p.name}</option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none" />
+        </div>
+        {currentProfile && (
+          <p className="mt-1 text-[10px] text-gray-600">{currentProfile.description}</p>
+        )}
+      </label>
+
+      {/* Result type */}
+      <div>
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">Type</span>
+        <div className="flex gap-1">
+          {SPLOIT_RESULT_TYPES.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => onResultTypeChange(t.id)}
+              className={cn(
+                'flex-1 py-1.5 text-[10px] font-medium rounded border transition-colors',
+                resultType === t.id
+                  ? 'bg-green-500/20 border-green-500/50 text-green-300'
+                  : 'bg-transparent border-[#2a2a32] text-gray-600 hover:text-gray-400',
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Title-only toggle */}
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <div
+          onClick={() => onTitleOnlyChange(!titleOnly)}
+          className={cn(
+            'w-8 h-4 rounded-full transition-colors relative',
+            titleOnly ? 'bg-green-500/40' : 'bg-[#2a2a32]',
+          )}
+        >
+          <div className={cn(
+            'absolute top-0.5 w-3 h-3 rounded-full transition-transform',
+            titleOnly ? 'translate-x-4 bg-green-400' : 'translate-x-0.5 bg-gray-600',
+          )} />
+        </div>
+        <span className="text-[10px] text-gray-600">Title search only</span>
+      </label>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// SearchSploit results panel
+// ---------------------------------------------------------------------------
+
+function SearchSploitResultsPanel({ parsed }: { parsed: Record<string, unknown> }) {
+  const exploits   = (parsed.exploits   as SearchSploitExploit[]) ?? []
+  const shellcodes = (parsed.shellcodes as SearchSploitExploit[]) ?? []
+  const query      = (parsed.query      as string) ?? ''
+  const total      = (parsed.total_found as number) ?? (exploits.length + shellcodes.length)
+  const [tab, setTab] = useState<'exploits' | 'shellcode'>('exploits')
+  const [selected, setSelected] = useState<SearchSploitExploit | null>(null)
+
+  const rows = tab === 'exploits' ? exploits : shellcodes
+
+  if (exploits.length === 0 && shellcodes.length === 0) {
+    return (
+      <div className="shrink-0 border-t border-[#2a2a32] px-4 py-4 flex items-center gap-2 text-xs text-gray-600">
+        <CheckCircle2 size={12} className="text-gray-600/60" />
+        No exploits found{query ? ` for "${query}"` : ''}.
+      </div>
+    )
+  }
+
+  return (
+    <div className="shrink-0 border-t border-[#2a2a32] flex" style={{ maxHeight: '48%' }}>
+      {/* Left: list */}
+      <div className="flex flex-col border-r border-[#2a2a32]" style={{ width: '55%' }}>
+        {/* Tabs */}
+        <div className="flex items-center gap-0 border-b border-[#2a2a32] px-3 shrink-0">
+          <TabButton active={tab === 'exploits'} onClick={() => setTab('exploits')}>
+            <Search size={10} /> Exploits ({exploits.length})
+          </TabButton>
+          {shellcodes.length > 0 && (
+            <TabButton active={tab === 'shellcode'} onClick={() => setTab('shellcode')}>
+              Shellcode ({shellcodes.length})
+            </TabButton>
+          )}
+          <span className="ml-auto text-[9px] text-gray-700 pr-2">{total} total</span>
+        </div>
+        {/* Table */}
+        <div className="overflow-y-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-wider text-gray-700 border-b border-[#2a2a32]">
+                <th className="text-left px-3 py-1.5">Sev</th>
+                <th className="text-left px-3 py-1.5">EDB-ID</th>
+                <th className="text-left px-3 py-1.5">Title</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#1e1e24]">
+              {rows.map((e, i) => (
+                <tr
+                  key={i}
+                  onClick={() => setSelected(selected === e ? null : e)}
+                  className={cn(
+                    'cursor-pointer hover:bg-white/[0.03] transition-colors',
+                    selected === e && 'bg-white/[0.05]',
+                  )}
+                >
+                  <td className="px-3 py-1.5">
+                    <span className={cn(
+                      'inline-flex text-[9px] font-medium border rounded px-1 py-0.5 uppercase',
+                      SPLOIT_SEV_BADGE[e.severity] ?? SPLOIT_SEV_BADGE.info,
+                    )}>
+                      {e.severity}
+                    </span>
+                  </td>
+                  <td className="px-3 py-1.5 font-mono text-green-400/80 text-[9px]">{e.edb_id}</td>
+                  <td className="px-3 py-1.5 text-gray-400 truncate max-w-[180px]" title={e.title}>{e.title}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {/* Right: detail */}
+      <div className="flex-1 overflow-y-auto p-3">
+        {selected ? (
+          <div className="space-y-2">
+            <div className="flex items-start gap-2">
+              <span className={cn(
+                'inline-flex text-[9px] font-medium border rounded px-1.5 py-0.5 uppercase shrink-0',
+                SPLOIT_SEV_BADGE[selected.severity] ?? SPLOIT_SEV_BADGE.info,
+              )}>
+                {selected.severity}
+              </span>
+              <p className="text-[10px] font-semibold text-gray-200 leading-tight">{selected.title}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+              <div>
+                <p className="text-[9px] uppercase tracking-wider text-gray-700">EDB-ID</p>
+                <p className="text-[10px] font-mono text-green-400">{selected.edb_id}</p>
+              </div>
+              {selected.cve && (
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-gray-700">CVE</p>
+                  <p className="text-[10px] font-mono text-blue-400">{selected.cve}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-[9px] uppercase tracking-wider text-gray-700">Type</p>
+                <p className="text-[10px] text-gray-400">{selected.type}</p>
+              </div>
+              <div>
+                <p className="text-[9px] uppercase tracking-wider text-gray-700">Platform</p>
+                <p className="text-[10px] text-gray-400">{selected.platform}</p>
+              </div>
+              <div>
+                <p className="text-[9px] uppercase tracking-wider text-gray-700">Date</p>
+                <p className="text-[10px] text-gray-500">{selected.date}</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase tracking-wider text-gray-700 mb-0.5">Path</p>
+              <p className="text-[9px] font-mono text-gray-600 break-all leading-relaxed">{selected.path}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full text-[10px] text-gray-700">
+            Click an exploit to see details
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Nmap → SearchSploit auto-lookup panel
+// ---------------------------------------------------------------------------
+
+function NmapAutoLookupPanel({
+  ports,
+  onSearch,
+}: {
+  ports: Port[]
+  onSearch: (query: string) => void
+}) {
+  // Extract unique service+version strings from ports that have version info
+  const serviceQueries = [...new Set(
+    ports
+      .filter((p) => p.service && p.state === 'open')
+      .map((p) => {
+        const svc = p.service ?? ''
+        const ver = p.version ?? ''
+        // Build a short but meaningful query: "apache 2.4.49" style
+        const combined = [svc, ver].filter(Boolean).join(' ').trim()
+        // Trim version to first two components to avoid over-specific queries
+        const simplified = combined.replace(/(\d+\.\d+)\.\S+/g, '$1')
+        return simplified
+      })
+      .filter(Boolean)
+  )].slice(0, 8) // cap at 8 to avoid cluttering
+
+  if (serviceQueries.length === 0) return null
+
+  return (
+    <div className="shrink-0 border-t border-[#2a2a32] px-4 py-2.5">
+      <div className="flex items-center gap-2 mb-2">
+        <Search size={10} className="text-green-500/70" />
+        <span className="text-[10px] font-medium text-gray-500">SearchSploit Auto-Lookup</span>
+        <button
+          onClick={() => onSearch(serviceQueries.join(' '))}
+          className="ml-auto text-[9px] text-green-500/70 hover:text-green-400 border border-green-500/20 hover:border-green-500/40 rounded px-1.5 py-0.5 transition-colors"
+        >
+          Search All
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {serviceQueries.map((q, i) => (
+          <button
+            key={i}
+            onClick={() => onSearch(q)}
+            className="text-[9px] font-mono text-gray-500 hover:text-green-400 bg-[#16161a] hover:bg-green-500/5 border border-[#2a2a32] hover:border-green-500/30 rounded px-2 py-0.5 transition-colors"
+          >
+            {q}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Coming soon placeholder
 // ---------------------------------------------------------------------------
 
@@ -1617,6 +1925,12 @@ export function ScansPage(): JSX.Element {
   const [niktoTimeout, setNiktoTimeout] = useState('10')
   const [niktoMaxtime, setNiktoMaxtime] = useState('')
 
+  // ---- searchsploit form state ----
+  const [sploitProfile, setSploitProfile] = useState('')
+  const [sploitQuery, setSploitQuery] = useState('')
+  const [sploitTitleOnly, setSploitTitleOnly] = useState(false)
+  const [sploitResultType, setSploitResultType] = useState('all')
+
   // ---- hydra form state ----
   const [hydraTargetId, setHydraTargetId] = useState('')
   const [hydraProfile, setHydraProfile] = useState('')
@@ -1741,6 +2055,12 @@ export function ScansPage(): JSX.Element {
         config.http_path = hydraHttpPath
       }
       if (hydraTargetId) targetId = hydraTargetId
+    } else if (selectedTool === 'searchsploit') {
+      config = {
+        query: sploitQuery,
+        title_only: sploitTitleOnly,
+        type: sploitResultType,
+      }
     }
 
     const activeProfile =
@@ -1748,7 +2068,8 @@ export function ScansPage(): JSX.Element {
       : selectedTool === 'gobuster' ? gobusterProfile
       : selectedTool === 'nuclei'   ? nucleiProfile
       : selectedTool === 'nikto'    ? niktoProfile
-      : selectedTool === 'hydra'    ? hydraProfile
+      : selectedTool === 'hydra'        ? hydraProfile
+      : selectedTool === 'searchsploit' ? sploitProfile
       : null
 
     try {
@@ -1785,6 +2106,20 @@ export function ScansPage(): JSX.Element {
     clearSession()
   }
 
+  // Auto-lookup: called from NmapAutoLookupPanel — fires a SearchSploit scan immediately
+  const handleAutoLookup = async (query: string) => {
+    if (!activeProject) return
+    try {
+      await startScan(activeProject.id, null, 'searchsploit', null, {
+        query,
+        title_only: true,
+        type: 'exploits',
+      })
+    } catch (e) {
+      useScanStore.setState({ error: (e as Error).message })
+    }
+  }
+
   // ---- Can start? ----
   const canStart = (() => {
     if (isRunning) return false
@@ -1793,6 +2128,7 @@ export function ScansPage(): JSX.Element {
     if (selectedTool === 'nuclei') return !!nucleiUrl
     if (selectedTool === 'nikto') return !!niktoUrl
     if (selectedTool === 'hydra') return !!(hydraHost && hydraPasslist)
+    if (selectedTool === 'searchsploit') return !!sploitQuery.trim()
     return false
   })()
 
@@ -1803,7 +2139,8 @@ export function ScansPage(): JSX.Element {
     selectedTool === 'gobuster' && (canStart ? 'bg-orange-600 hover:bg-orange-500' : 'bg-orange-600'),
     selectedTool === 'nuclei'   && (canStart ? 'bg-red-700 hover:bg-red-600'         : 'bg-red-700'),
     selectedTool === 'nikto'    && (canStart ? 'bg-yellow-700 hover:bg-yellow-600'   : 'bg-yellow-700'),
-    selectedTool === 'hydra'    && (canStart ? 'bg-purple-700 hover:bg-purple-600'   : 'bg-purple-700'),
+    selectedTool === 'hydra'        && (canStart ? 'bg-purple-700 hover:bg-purple-600'  : 'bg-purple-700'),
+    selectedTool === 'searchsploit' && (canStart ? 'bg-green-800 hover:bg-green-700'   : 'bg-green-800'),
   )
 
   // ---- No active project ----
@@ -1944,7 +2281,21 @@ export function ScansPage(): JSX.Element {
               onHttpPathChange={setHydraHttpPath}
             />
           )}
-          {!['nmap', 'gobuster', 'nuclei', 'nikto', 'hydra'].includes(selectedTool) && (
+          {selectedTool === 'searchsploit' && (
+            <SearchSploitForm
+              profiles={profiles}
+              isLoadingProfiles={isLoadingProfiles}
+              selectedProfile={sploitProfile}
+              onProfileChange={setSploitProfile}
+              query={sploitQuery}
+              onQueryChange={setSploitQuery}
+              titleOnly={sploitTitleOnly}
+              onTitleOnlyChange={setSploitTitleOnly}
+              resultType={sploitResultType}
+              onResultTypeChange={setSploitResultType}
+            />
+          )}
+          {!['nmap', 'gobuster', 'nuclei', 'nikto', 'hydra', 'searchsploit'].includes(selectedTool) && (
             <ComingSoonForm tool={selectedTool} />
           )}
 
@@ -2057,7 +2408,10 @@ export function ScansPage(): JSX.Element {
           {activeScan?.status === 'completed' && results && (
             <>
               {activeScan.tool === 'nmap' && results.hosts.length + results.ports.length > 0 && (
-                <NmapResultsPanel hosts={results.hosts} ports={results.ports} />
+                <>
+                  <NmapResultsPanel hosts={results.hosts} ports={results.ports} />
+                  <NmapAutoLookupPanel ports={results.ports} onSearch={handleAutoLookup} />
+                </>
               )}
               {activeScan.tool === 'gobuster' && results.parsed && (
                 <GobusterResultsPanel parsed={results.parsed} />
@@ -2070,6 +2424,9 @@ export function ScansPage(): JSX.Element {
               )}
               {activeScan.tool === 'hydra' && results.parsed && (
                 <HydraResultsPanel parsed={results.parsed} />
+              )}
+              {activeScan.tool === 'searchsploit' && results.parsed && (
+                <SearchSploitResultsPanel parsed={results.parsed} />
               )}
             </>
           )}
