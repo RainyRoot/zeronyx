@@ -56,3 +56,4 @@ def list_adapters() -> list[tuple[str, type[ToolAdapter]]]:
 from backend.adapters import nmap_adapter      # noqa: E402, F401
 from backend.adapters import gobuster_adapter  # noqa: E402, F401
 from backend.adapters import nuclei_adapter    # noqa: E402, F401
+from backend.adapters import nikto_adapter     # noqa: E402, F401

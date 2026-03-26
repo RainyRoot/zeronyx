@@ -66,7 +66,7 @@ const TOOLS: ToolMeta[] = [
     color: 'yellow',
     icon: <Globe size={12} />,
     phase: 2,
-    available: false,
+    available: true,
   },
   {
     id: 'hydra',
@@ -809,6 +809,341 @@ function NucleiResultsPanel({ parsed }: { parsed: Record<string, unknown> }) {
 }
 
 // ---------------------------------------------------------------------------
+// Nikto form
+// ---------------------------------------------------------------------------
+
+// Nikto tuning option definitions (subset most relevant for web audits)
+const NIKTO_TUNING_OPTIONS = [
+  { id: '2', label: 'Misconfig',   title: 'Misconfiguration / default files' },
+  { id: '3', label: 'Disclosure',  title: 'Information disclosure' },
+  { id: '4', label: 'Injection',   title: 'XSS / script injection' },
+  { id: '9', label: 'SQL',         title: 'SQL injection' },
+  { id: 'a', label: 'Auth Bypass', title: 'Authentication bypass' },
+  { id: 'b', label: 'Soft ID',     title: 'Software identification' },
+] as const
+
+interface NiktoFormProps {
+  targets: { id: string; value: string }[]
+  selectedTargetId: string
+  onTargetChange: (v: string) => void
+  profiles: { name: string; description: string; config: Record<string, unknown> }[]
+  isLoadingProfiles: boolean
+  selectedProfile: string
+  onProfileChange: (v: string) => void
+  url: string
+  onUrlChange: (v: string) => void
+  tuning: string[]
+  onTuningChange: (v: string[]) => void
+  ssl: boolean
+  onSslChange: (v: boolean) => void
+  timeout: string
+  onTimeoutChange: (v: string) => void
+  maxtime: string
+  onMaxtimeChange: (v: string) => void
+}
+
+function NiktoForm({
+  targets, selectedTargetId, onTargetChange,
+  profiles, isLoadingProfiles, selectedProfile, onProfileChange,
+  url, onUrlChange, tuning, onTuningChange,
+  ssl, onSslChange, timeout, onTimeoutChange,
+  maxtime, onMaxtimeChange,
+}: NiktoFormProps) {
+  const currentProfile = profiles.find((p) => p.name === selectedProfile)
+
+  useEffect(() => {
+    if (currentProfile?.config) {
+      const c = currentProfile.config as Record<string, unknown>
+      if (typeof c.tuning === 'string') {
+        onTuningChange(c.tuning.split(''))
+      } else {
+        onTuningChange([])
+      }
+      if (typeof c.ssl === 'boolean') onSslChange(c.ssl)
+      if (c.timeout) onTimeoutChange(String(c.timeout))
+      if (c.maxtime) onMaxtimeChange(String(c.maxtime))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProfile])
+
+  // Auto-fill URL from target
+  useEffect(() => {
+    if (selectedTargetId && !url) {
+      const t = targets.find((t) => t.id === selectedTargetId)
+      if (t) {
+        const val = t.value
+        onUrlChange(val.startsWith('http') ? val : `http://${val}`)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTargetId])
+
+  const toggleTuning = (id: string) => {
+    if (tuning.includes(id)) {
+      onTuningChange(tuning.filter((t) => t !== id))
+    } else {
+      onTuningChange([...tuning, id])
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Target */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">Target</span>
+        <div className="relative">
+          <select
+            value={selectedTargetId}
+            onChange={(e) => onTargetChange(e.target.value)}
+            className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs text-gray-200 appearance-none focus:outline-none focus:border-yellow-500/50 transition-colors"
+          >
+            <option value="">— manual entry below —</option>
+            {targets.map((t) => (
+              <option key={t.id} value={t.id}>{t.value}</option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none" />
+        </div>
+      </label>
+      {/* URL */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">URL</span>
+        <input
+          type="text"
+          value={url}
+          onChange={(e) => onUrlChange(e.target.value)}
+          placeholder="http://example.com"
+          className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-yellow-500/50 transition-colors"
+        />
+      </label>
+      {/* Profile */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">Profile</span>
+        <div className="relative">
+          <select
+            value={selectedProfile}
+            onChange={(e) => onProfileChange(e.target.value)}
+            disabled={isLoadingProfiles}
+            className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs text-gray-200 appearance-none focus:outline-none focus:border-yellow-500/50 transition-colors disabled:opacity-50"
+          >
+            <option value="">— custom —</option>
+            {profiles.map((p) => (
+              <option key={p.name} value={p.name}>{p.name}</option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none" />
+        </div>
+        {currentProfile && (
+          <p className="mt-1 text-[10px] text-gray-600">{currentProfile.description}</p>
+        )}
+      </label>
+      {/* Tuning */}
+      <div>
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">
+          Tuning <span className="text-gray-700 normal-case">(all if none selected)</span>
+        </span>
+        <div className="flex flex-wrap gap-1">
+          {NIKTO_TUNING_OPTIONS.map((opt) => {
+            const active = tuning.includes(opt.id)
+            return (
+              <button
+                key={opt.id}
+                title={opt.title}
+                onClick={() => toggleTuning(opt.id)}
+                className={cn(
+                  'px-2 py-0.5 text-[10px] font-medium rounded border transition-colors',
+                  active
+                    ? 'text-yellow-300 border-yellow-500/50 bg-yellow-500/10'
+                    : 'text-gray-700 border-[#2a2a32] hover:text-gray-500',
+                )}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      {/* SSL toggle + timeout row */}
+      <div className="flex items-center gap-3">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <div
+            onClick={() => onSslChange(!ssl)}
+            className={cn(
+              'w-8 h-4 rounded-full transition-colors relative',
+              ssl ? 'bg-yellow-500/40' : 'bg-[#2a2a32]',
+            )}
+          >
+            <div className={cn(
+              'absolute top-0.5 w-3 h-3 rounded-full transition-transform',
+              ssl ? 'translate-x-4 bg-yellow-400' : 'translate-x-0.5 bg-gray-600',
+            )} />
+          </div>
+          <span className="text-[10px] text-gray-600">Force SSL</span>
+        </label>
+        <label className="flex-1 block">
+          <span className="text-[10px] text-gray-600 block mb-0.5">Timeout (s)</span>
+          <input
+            type="number"
+            min={1}
+            max={60}
+            value={timeout}
+            onChange={(e) => onTimeoutChange(e.target.value)}
+            className="w-full bg-[#16161a] border border-[#2a2a32] rounded px-2 py-1 text-xs font-mono text-gray-200 focus:outline-none focus:border-yellow-500/50 transition-colors"
+          />
+        </label>
+      </div>
+      {/* Max time */}
+      <label className="block">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 block mb-1">
+          Max scan time <span className="text-gray-700 normal-case">(optional, e.g. 5m)</span>
+        </span>
+        <input
+          type="text"
+          value={maxtime}
+          onChange={(e) => onMaxtimeChange(e.target.value)}
+          placeholder="5m"
+          className="w-full bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-2 text-xs font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-yellow-500/50 transition-colors"
+        />
+      </label>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Nikto results panel
+// ---------------------------------------------------------------------------
+
+interface NiktoFinding {
+  path: string | null
+  osvdb: string | null
+  cve: string | null
+  description: string
+  severity: string
+}
+
+const NIKTO_SEV_BADGE: Record<string, string> = {
+  high:   'text-orange-400 bg-orange-500/10 border-orange-500/30',
+  medium: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
+  low:    'text-blue-400 bg-blue-500/10 border-blue-500/30',
+  info:   'text-gray-400 bg-gray-500/10 border-gray-500/20',
+}
+
+function NiktoResultsPanel({ parsed }: { parsed: Record<string, unknown> }) {
+  const findings = (parsed.findings as NiktoFinding[]) ?? []
+  const total = (parsed.total_found as number) ?? findings.length
+  const server = parsed.server as string | null
+  const ip = parsed.ip as string | null
+  const [selected, setSelected] = useState<NiktoFinding | null>(null)
+
+  if (findings.length === 0) {
+    return (
+      <div className="shrink-0 border-t border-[#2a2a32] px-4 py-4 flex items-center gap-2 text-xs text-gray-600">
+        <CheckCircle2 size={12} className="text-green-500/60" />
+        No issues found.
+      </div>
+    )
+  }
+
+  return (
+    <div className="shrink-0 border-t border-[#2a2a32] flex" style={{ maxHeight: '45%' }}>
+      {/* List */}
+      <div className="flex flex-col border-r border-[#2a2a32]" style={{ width: '55%' }}>
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-[#2a2a32] shrink-0">
+          <Globe size={11} className="text-yellow-400" />
+          <span className="text-[10px] font-medium text-gray-300">Nikto Findings ({total})</span>
+          {server && (
+            <span className="ml-auto text-[9px] font-mono text-gray-700 truncate max-w-[120px]" title={server}>
+              {server}
+            </span>
+          )}
+          {ip && <span className="text-[9px] font-mono text-gray-700">{ip}</span>}
+        </div>
+        <div className="overflow-y-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-wider text-gray-700 border-b border-[#2a2a32]">
+                <th className="text-left px-3 py-1.5">Sev</th>
+                <th className="text-left px-3 py-1.5">Path / Issue</th>
+                <th className="text-left px-3 py-1.5">Ref</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#1e1e24]">
+              {findings.map((f, i) => (
+                <tr
+                  key={i}
+                  onClick={() => setSelected(selected === f ? null : f)}
+                  className={cn(
+                    'cursor-pointer hover:bg-white/[0.03] transition-colors',
+                    selected === f && 'bg-white/[0.05]',
+                  )}
+                >
+                  <td className="px-3 py-1.5">
+                    <span className={cn(
+                      'inline-flex text-[9px] font-medium border rounded px-1 py-0.5 uppercase',
+                      NIKTO_SEV_BADGE[f.severity] ?? NIKTO_SEV_BADGE.info,
+                    )}>
+                      {f.severity}
+                    </span>
+                  </td>
+                  <td className="px-3 py-1.5 text-gray-400 truncate max-w-[120px]" title={f.path ?? f.description}>
+                    {f.path ? (
+                      <span className="font-mono text-yellow-400/80">{f.path}</span>
+                    ) : (
+                      <span className="text-gray-500 italic">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-1.5 text-[9px] font-mono text-gray-700">
+                    {f.osvdb ? `OSVDB-${f.osvdb}` : f.cve ?? '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {/* Detail */}
+      <div className="flex-1 overflow-y-auto p-3">
+        {selected ? (
+          <div className="space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <span className={cn(
+                'inline-flex text-[9px] font-medium border rounded px-1.5 py-0.5 uppercase',
+                NIKTO_SEV_BADGE[selected.severity] ?? NIKTO_SEV_BADGE.info,
+              )}>
+                {selected.severity}
+              </span>
+              {selected.osvdb && (
+                <span className="text-[9px] font-mono text-gray-700">OSVDB-{selected.osvdb}</span>
+              )}
+            </div>
+            {selected.path && (
+              <div>
+                <p className="text-[9px] uppercase tracking-wider text-gray-700">Path</p>
+                <p className="text-[10px] font-mono text-yellow-400/80 break-all">{selected.path}</p>
+              </div>
+            )}
+            {selected.cve && (
+              <div>
+                <p className="text-[9px] uppercase tracking-wider text-gray-700">CVE</p>
+                <p className="text-[10px] font-mono text-blue-400">{selected.cve}</p>
+              </div>
+            )}
+            <div>
+              <p className="text-[9px] uppercase tracking-wider text-gray-700 mb-1">Description</p>
+              <p className="text-[10px] text-gray-400 leading-relaxed">{selected.description}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full text-[10px] text-gray-700">
+            Click a finding to see details
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Coming soon placeholder
 // ---------------------------------------------------------------------------
 
@@ -972,6 +1307,15 @@ export function ScansPage(): JSX.Element {
   const [gobusterExtensions, setGobusterExtensions] = useState('')
   const [gobusterThreads, setGobusterThreads] = useState('10')
 
+  // ---- nikto form state ----
+  const [niktoTargetId, setNiktoTargetId] = useState('')
+  const [niktoProfile, setNiktoProfile] = useState('')
+  const [niktoUrl, setNiktoUrl] = useState('')
+  const [niktoTuning, setNiktoTuning] = useState<string[]>([])
+  const [niktoSsl, setNiktoSsl] = useState(false)
+  const [niktoTimeout, setNiktoTimeout] = useState('10')
+  const [niktoMaxtime, setNiktoMaxtime] = useState('')
+
   // ---- nuclei form state ----
   const [nucleiTargetId, setNucleiTargetId] = useState('')
   const [nucleiProfile, setNucleiProfile] = useState('')
@@ -1064,12 +1408,19 @@ export function ScansPage(): JSX.Element {
       if (nucleiTags) config.tags = nucleiTags
       if (nucleiTemplates) config.templates = nucleiTemplates
       if (nucleiTargetId) targetId = nucleiTargetId
+    } else if (selectedTool === 'nikto') {
+      config = { url: niktoUrl, timeout: parseInt(niktoTimeout, 10) || 10 }
+      if (niktoTuning.length > 0) config.tuning = niktoTuning.join('')
+      if (niktoSsl) config.ssl = true
+      if (niktoMaxtime) config.maxtime = niktoMaxtime
+      if (niktoTargetId) targetId = niktoTargetId
     }
 
     const activeProfile =
-      selectedTool === 'nmap' ? nmapProfile
+      selectedTool === 'nmap'     ? nmapProfile
       : selectedTool === 'gobuster' ? gobusterProfile
-      : selectedTool === 'nuclei' ? nucleiProfile
+      : selectedTool === 'nuclei'   ? nucleiProfile
+      : selectedTool === 'nikto'    ? niktoProfile
       : null
 
     try {
@@ -1112,6 +1463,7 @@ export function ScansPage(): JSX.Element {
     if (selectedTool === 'nmap') return !!(nmapFlags || nmapProfile)
     if (selectedTool === 'gobuster') return !!(gobusterUrl && gobusterWordlist)
     if (selectedTool === 'nuclei') return !!nucleiUrl
+    if (selectedTool === 'nikto') return !!niktoUrl
     return false
   })()
 
@@ -1120,7 +1472,8 @@ export function ScansPage(): JSX.Element {
     canStart ? `bg-opacity-90 hover:bg-opacity-100` : 'opacity-30 cursor-not-allowed',
     selectedTool === 'nmap'     && (canStart ? 'bg-blue-600 hover:bg-blue-500'     : 'bg-blue-600'),
     selectedTool === 'gobuster' && (canStart ? 'bg-orange-600 hover:bg-orange-500' : 'bg-orange-600'),
-    selectedTool === 'nuclei'   && (canStart ? 'bg-red-700 hover:bg-red-600'       : 'bg-red-700'),
+    selectedTool === 'nuclei'   && (canStart ? 'bg-red-700 hover:bg-red-600'         : 'bg-red-700'),
+    selectedTool === 'nikto'    && (canStart ? 'bg-yellow-700 hover:bg-yellow-600'   : 'bg-yellow-700'),
   )
 
   // ---- No active project ----
@@ -1213,7 +1566,28 @@ export function ScansPage(): JSX.Element {
               onThreadsChange={setNucleiThreads}
             />
           )}
-          {!['nmap', 'gobuster', 'nuclei'].includes(selectedTool) && (
+          {selectedTool === 'nikto' && (
+            <NiktoForm
+              targets={targets}
+              selectedTargetId={niktoTargetId}
+              onTargetChange={setNiktoTargetId}
+              profiles={profiles}
+              isLoadingProfiles={isLoadingProfiles}
+              selectedProfile={niktoProfile}
+              onProfileChange={setNiktoProfile}
+              url={niktoUrl}
+              onUrlChange={setNiktoUrl}
+              tuning={niktoTuning}
+              onTuningChange={setNiktoTuning}
+              ssl={niktoSsl}
+              onSslChange={setNiktoSsl}
+              timeout={niktoTimeout}
+              onTimeoutChange={setNiktoTimeout}
+              maxtime={niktoMaxtime}
+              onMaxtimeChange={setNiktoMaxtime}
+            />
+          )}
+          {!['nmap', 'gobuster', 'nuclei', 'nikto'].includes(selectedTool) && (
             <ComingSoonForm tool={selectedTool} />
           )}
 
@@ -1333,6 +1707,9 @@ export function ScansPage(): JSX.Element {
               )}
               {activeScan.tool === 'nuclei' && results.parsed && (
                 <NucleiResultsPanel parsed={results.parsed} />
+              )}
+              {activeScan.tool === 'nikto' && results.parsed && (
+                <NiktoResultsPanel parsed={results.parsed} />
               )}
             </>
           )}
