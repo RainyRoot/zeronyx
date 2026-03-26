@@ -6,10 +6,40 @@ const api = {
   getBackendPort: (): Promise<number> => ipcRenderer.invoke('backend:getPort')
 }
 
+// Terminal PTY bridge — exposed to renderer via window.terminalAPI
+const terminalAPI = {
+  spawn: (id: string, cols: number, rows: number): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('terminal:spawn', { id, cols, rows }),
+
+  write: (id: string, data: string): void =>
+    ipcRenderer.send('terminal:write', { id, data }),
+
+  resize: (id: string, cols: number, rows: number): void =>
+    ipcRenderer.send('terminal:resize', { id, cols, rows }),
+
+  kill: (id: string): void =>
+    ipcRenderer.send('terminal:kill', { id }),
+
+  onData: (id: string, callback: (data: string) => void): (() => void) => {
+    const channel = `terminal:data:${id}`
+    const handler = (_evt: Electron.IpcRendererEvent, data: string) => callback(data)
+    ipcRenderer.on(channel, handler)
+    return () => ipcRenderer.removeListener(channel, handler)
+  },
+
+  onExit: (id: string, callback: (code: number) => void): (() => void) => {
+    const channel = `terminal:exit:${id}`
+    const handler = (_evt: Electron.IpcRendererEvent, code: number) => callback(code)
+    ipcRenderer.on(channel, handler)
+    return () => ipcRenderer.removeListener(channel, handler)
+  },
+}
+
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('terminalAPI', terminalAPI)
   } catch (error) {
     console.error(error)
   }
@@ -18,4 +48,6 @@ if (process.contextIsolated) {
   window.electron = electronAPI
   // @ts-ignore
   window.api = api
+  // @ts-ignore
+  window.terminalAPI = terminalAPI
 }

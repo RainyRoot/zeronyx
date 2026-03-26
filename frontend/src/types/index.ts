@@ -4,6 +4,7 @@ export type PageId =
   | 'scans'
   | 'findings'
   | 'reports'
+  | 'terminal'
   | 'settings'
 
 export interface Tab {
