@@ -196,6 +196,20 @@ export interface GobusterPath {
 // Hosts & Ports (from scan results, returned by future endpoints)
 // ---------------------------------------------------------------------------
 
+export interface Credential {
+  id: string
+  project_id: string
+  source_scan: string | null
+  service: string | null
+  username: string | null
+  password: string | null
+  hash: string | null
+  hash_type: string | null
+  verified: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Host {
   id: string
   project_id: string

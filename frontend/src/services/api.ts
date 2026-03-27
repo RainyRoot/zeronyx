@@ -3,7 +3,7 @@
  * All methods throw an Error with a human-readable message on non-2xx responses.
  */
 
-import type { Project, ApiPaginatedResponse, Scan, ScanDetail, NmapProfile } from '@/types'
+import type { Project, ApiPaginatedResponse, Scan, ScanDetail, NmapProfile, Credential } from '@/types'
 
 const BASE = 'http://127.0.0.1:8742'
 
@@ -135,6 +135,64 @@ export const scansApi = {
 
   listTools(): Promise<{ tools: { name: string; installed: boolean; binary_path: string | null }[] }> {
     return request('GET', '/api/tools')
+  },
+}
+
+// ---------------------------------------------------------------------------
+// Credentials
+// ---------------------------------------------------------------------------
+
+interface CredentialCreatePayload {
+  project_id: string
+  service?: string | null
+  username?: string | null
+  password?: string | null
+  hash?: string | null
+  hash_type?: string | null
+  verified?: boolean
+}
+
+interface CredentialUpdatePayload {
+  service?: string | null
+  username?: string | null
+  password?: string | null
+  hash?: string | null
+  hash_type?: string | null
+  verified?: boolean
+}
+
+interface ImportResult {
+  imported: number
+  skipped: number
+}
+
+export const credentialsApi = {
+  list(
+    projectId: string,
+    params: { skip?: number; limit?: number; service?: string; verified?: boolean } = {}
+  ): Promise<ApiPaginatedResponse<Credential>> {
+    const q = new URLSearchParams({ project_id: projectId })
+    if (params.skip !== undefined) q.set('skip', String(params.skip))
+    if (params.limit !== undefined) q.set('limit', String(params.limit))
+    if (params.service) q.set('service', params.service)
+    if (params.verified !== undefined) q.set('verified', String(params.verified))
+    return request<ApiPaginatedResponse<Credential>>('GET', `/api/credentials?${q.toString()}`)
+  },
+
+  create(payload: CredentialCreatePayload): Promise<Credential> {
+    return request<Credential>('POST', '/api/credentials', payload)
+  },
+
+  update(id: string, payload: CredentialUpdatePayload): Promise<Credential> {
+    return request<Credential>('PATCH', `/api/credentials/${id}`, payload)
+  },
+
+  delete(id: string): Promise<void> {
+    return request<void>('DELETE', `/api/credentials/${id}`)
+  },
+
+  importFromScan(scanId: string, projectId: string): Promise<ImportResult> {
+    return request<ImportResult>('POST', `/api/credentials/import/${scanId}?project_id=${projectId}`)
   },
 }
 
