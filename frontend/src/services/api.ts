@@ -138,6 +138,22 @@ export const scansApi = {
   },
 }
 
+// ---------------------------------------------------------------------------
+// Export
+// ---------------------------------------------------------------------------
+
+export interface ObsidianExportResponse {
+  project_name: string
+  file_count: number
+  files: Record<string, string>
+}
+
+export const exportApi = {
+  obsidian(projectId: string): Promise<ObsidianExportResponse> {
+    return request<ObsidianExportResponse>('GET', `/api/projects/${projectId}/export/obsidian`)
+  },
+}
+
 export const projectsApi = {
   list(params: ProjectListParams = {}): Promise<ApiPaginatedResponse<Project>> {
     const q = new URLSearchParams()

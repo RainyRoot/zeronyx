@@ -1,5 +1,12 @@
 /// <reference types="vite/client" />
 
+interface ExportWriteVaultResult {
+  success: boolean
+  path?: string
+  cancelled?: boolean
+  error?: string
+}
+
 interface Window {
   api: {
     getBackendPort: () => Promise<number>
@@ -11,5 +18,8 @@ interface Window {
     kill: (id: string) => void
     onData: (id: string, callback: (data: string) => void) => () => void
     onExit: (id: string, callback: (code: number) => void) => () => void
+  }
+  exportAPI: {
+    writeVault: (files: Record<string, string>, defaultName: string) => Promise<ExportWriteVaultResult>
   }
 }

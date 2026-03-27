@@ -1,5 +1,6 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
+import { mkdirSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { BackendManager } from './backend-manager'
 import type { IPty } from 'node-pty'
@@ -77,6 +78,38 @@ function setupTerminalIpc(): void {
 
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Obsidian vault export
+// ---------------------------------------------------------------------------
+
+function setupExportIpc(): void {
+  ipcMain.handle('export:writeVault', async (_event, { files, defaultName }: { files: Record<string, string>; defaultName: string }) => {
+    const result = await dialog.showOpenDialog(mainWindow!, {
+      title: 'Select Obsidian Vault Folder',
+      buttonLabel: 'Export Here',
+      properties: ['openDirectory', 'createDirectory'],
+    })
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, cancelled: true }
+    }
+
+    const vaultRoot = join(result.filePaths[0], defaultName)
+
+    try {
+      for (const [relPath, content] of Object.entries(files)) {
+        const absPath = join(vaultRoot, relPath)
+        const dir = absPath.substring(0, absPath.lastIndexOf('/'))
+        mkdirSync(dir, { recursive: true })
+        writeFileSync(absPath, content, 'utf8')
+      }
+      return { success: true, path: vaultRoot }
+    } catch (err) {
+      return { success: false, error: (err as Error).message }
+    }
+  })
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -116,6 +149,7 @@ app.whenReady().then(async () => {
   })
 
   setupTerminalIpc()
+  setupExportIpc()
   await backendManager.start()
   createWindow()
 

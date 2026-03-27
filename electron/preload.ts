@@ -35,11 +35,21 @@ const terminalAPI = {
   },
 }
 
+// Obsidian vault export bridge
+const exportAPI = {
+  writeVault: (
+    files: Record<string, string>,
+    defaultName: string
+  ): Promise<{ success: boolean; path?: string; cancelled?: boolean; error?: string }> =>
+    ipcRenderer.invoke('export:writeVault', { files, defaultName }),
+}
+
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
     contextBridge.exposeInMainWorld('terminalAPI', terminalAPI)
+    contextBridge.exposeInMainWorld('exportAPI', exportAPI)
   } catch (error) {
     console.error(error)
   }
@@ -50,4 +60,6 @@ if (process.contextIsolated) {
   window.api = api
   // @ts-ignore
   window.terminalAPI = terminalAPI
+  // @ts-ignore
+  window.exportAPI = exportAPI
 }
