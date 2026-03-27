@@ -1,10 +1,10 @@
-"""Proxy management REST endpoints + WebSocket live-stream."""
+"""Proxy management — REST + WebSocket."""
 
 import json
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
@@ -24,6 +24,23 @@ router = APIRouter(prefix="/proxy", tags=["proxy"])
 class ProxyStartRequest(BaseModel):
     port: int = 8080
     project_id: str
+
+
+class InterceptToggleRequest(BaseModel):
+    enabled: bool
+    filter: str = ""
+
+
+class InterceptForwardRequest(BaseModel):
+    modifications: dict[str, Any] | None = None
+
+
+class ReplayRequest(BaseModel):
+    project_id: str
+    method: str
+    url: str
+    headers: dict[str, str] = {}
+    body: str | None = None
 
 
 class ProxyRequestOut(BaseModel):
@@ -73,7 +90,7 @@ class ProxyRequestOut(BaseModel):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Control endpoints
+# Lifecycle
 # ──────────────────────────────────────────────────────────────────────────────
 
 @router.post("/start")
@@ -89,6 +106,51 @@ def stop_proxy() -> dict[str, Any]:
 @router.get("/status")
 def proxy_status() -> dict[str, Any]:
     return proxy_manager.status()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Intercept
+# ──────────────────────────────────────────────────────────────────────────────
+
+@router.post("/intercept/toggle")
+def toggle_intercept(body: InterceptToggleRequest) -> dict[str, Any]:
+    return proxy_manager.set_intercept(enabled=body.enabled, filter_str=body.filter)
+
+
+@router.get("/intercept/pending")
+def get_pending() -> list[dict[str, Any]]:
+    return proxy_manager.get_pending()
+
+
+@router.post("/intercept/{flow_id}/forward")
+def forward_flow(flow_id: str, body: InterceptForwardRequest) -> dict[str, Any]:
+    result = proxy_manager.forward_flow(flow_id=flow_id, modifications=body.modifications)
+    if not result["ok"]:
+        raise HTTPException(404, result["error"])
+    return result
+
+
+@router.post("/intercept/{flow_id}/drop")
+def drop_flow(flow_id: str) -> dict[str, Any]:
+    result = proxy_manager.drop_flow(flow_id=flow_id)
+    if not result["ok"]:
+        raise HTTPException(404, result["error"])
+    return result
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Replay
+# ──────────────────────────────────────────────────────────────────────────────
+
+@router.post("/replay")
+async def replay_request(body: ReplayRequest) -> dict[str, Any]:
+    return await proxy_manager.replay(
+        project_id=body.project_id,
+        method=body.method,
+        url=body.url,
+        headers=body.headers,
+        body=body.body,
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -108,7 +170,6 @@ def list_requests(
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     q = db.query(ProxyRequest).filter(ProxyRequest.project_id == project_id)
-
     if method:
         q = q.filter(ProxyRequest.method == method.upper())
     if host:
@@ -143,7 +204,6 @@ def get_request(
         .first()
     )
     if not row:
-        from fastapi import HTTPException
         raise HTTPException(404, "Request not found")
     return ProxyRequestOut.from_orm(row)
 
@@ -174,7 +234,6 @@ def delete_request(
         .first()
     )
     if not row:
-        from fastapi import HTTPException
         raise HTTPException(404, "Request not found")
     db.delete(row)
     db.commit()
@@ -187,13 +246,11 @@ def delete_request(
 
 @router.websocket("/ws")
 async def proxy_ws(websocket: WebSocket) -> None:
-    """Push-only stream: server sends ``proxy_request`` events as flows complete."""
+    """Push stream: proxy_request, intercept_request, intercept_forwarded, intercept_dropped."""
     await proxy_manager.ws_connect(websocket)
     try:
         while True:
-            # Keep connection alive; client sends pong keepalives
-            data = await websocket.receive_json()
-            # pong — no action needed
+            await websocket.receive_json()  # drain pongs
     except WebSocketDisconnect:
         pass
     finally:
