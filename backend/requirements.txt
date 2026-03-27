@@ -6,3 +6,4 @@ pydantic-settings>=2.6.0
 python-dotenv>=1.0.0
 python-multipart>=0.0.12
 mitmproxy>=10.0.0
+pymetasploit3>=1.0

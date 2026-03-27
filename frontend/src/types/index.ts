@@ -5,6 +5,7 @@ export type PageId =
   | 'history'
   | 'findings'
   | 'proxy'
+  | 'metasploit'
   | 'reports'
   | 'terminal'
   | 'settings'
@@ -241,6 +242,48 @@ export interface ProxyStatus {
   running: boolean
   port: number
   project_id: string | null
+}
+
+// ---------------------------------------------------------------------------
+// Metasploit
+// ---------------------------------------------------------------------------
+
+export interface MsfModule {
+  type: string
+  name: string
+  fullname: string
+  rank: number
+  description: string
+  references: string[]
+}
+
+export interface MsfModuleOption {
+  name: string
+  type: string
+  required: boolean
+  default: string
+  description: string
+  current: string
+}
+
+export interface MsfModuleInfo {
+  type: string
+  name: string
+  fullname: string
+  description: string
+  authors: string[]
+  references: string[]
+  rank: string
+  options: Record<string, MsfModuleOption>
+  required: string[]
+}
+
+export interface MsfStatus {
+  connected: boolean
+  host: string
+  port: number
+  ssl: boolean
+  version: string | null
 }
 
 export interface Host {
