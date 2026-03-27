@@ -9,6 +9,7 @@ import { ReportsPage } from '@/pages/Reports'
 import { SettingsPage } from '@/pages/Settings'
 import { TerminalPage } from '@/pages/Terminal'
 import { HistoryPage } from '@/pages/History'
+import { ProxyPage } from '@/pages/Proxy'
 import type { BackendStatus } from '@/types'
 
 const BACKEND_URL = 'http://127.0.0.1:8742'
@@ -46,6 +47,7 @@ export default function App(): JSX.Element {
           <Route path="/scans" element={<ScansPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/findings" element={<FindingsPage />} />
+          <Route path="/proxy" element={<ProxyPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/terminal" element={<TerminalPage />} />
           <Route path="/settings" element={<SettingsPage />} />

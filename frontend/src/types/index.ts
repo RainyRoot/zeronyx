@@ -4,6 +4,7 @@ export type PageId =
   | 'scans'
   | 'history'
   | 'findings'
+  | 'proxy'
   | 'reports'
   | 'terminal'
   | 'settings'
@@ -208,6 +209,38 @@ export interface Credential {
   verified: boolean
   created_at: string
   updated_at: string
+}
+
+// ---------------------------------------------------------------------------
+// Proxy
+// ---------------------------------------------------------------------------
+
+export interface ProxyRequest {
+  id: string
+  project_id: string
+  method: string
+  scheme: string
+  host: string
+  port: number
+  path: string
+  url: string
+  request_headers: Record<string, string> | null
+  request_body: string | null
+  status_code: number | null
+  response_headers: Record<string, string> | null
+  response_body: string | null
+  content_type: string | null
+  response_size: number | null
+  duration_ms: number | null
+  timestamp: string
+  tags: string[] | null
+  notes: string | null
+}
+
+export interface ProxyStatus {
+  running: boolean
+  port: number
+  project_id: string | null
 }
 
 export interface Host {
