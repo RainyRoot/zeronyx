@@ -2,8 +2,10 @@ export type PageId =
   | 'dashboard'
   | 'targets'
   | 'scans'
+  | 'history'
   | 'findings'
   | 'reports'
+  | 'terminal'
   | 'settings'
 
 export interface Tab {
@@ -142,15 +144,71 @@ export interface ScanDetail extends Scan {
   parsed: Record<string, unknown> | null
 }
 
-export interface NmapProfile {
+/** Generic scan profile — tool-specific config fields live in `config`. */
+export interface ScanProfile {
   name: string
   description: string
-  config: { flags: string; ports?: string }
+  config: Record<string, unknown>
+}
+
+/** @deprecated Use ScanProfile */
+export type NmapProfile = ScanProfile
+
+/** A registered tool with its install status. */
+export interface ToolInfo {
+  name: string
+  installed: boolean
+  binary_path: string | null
+}
+
+/** One exploit/shellcode entry from searchsploit parsed results */
+export interface SearchSploitExploit {
+  edb_id: string
+  title: string
+  date: string
+  type: string
+  platform: string
+  path: string
+  cve: string | null
+  severity: string
+}
+
+/** One found credential from hydra parsed results */
+export interface HydraCredential {
+  host: string
+  port: number
+  service: string
+  username: string
+  password: string
+}
+
+/** One entry from gobuster parsed results */
+export interface GobusterPath {
+  path?: string
+  subdomain?: string
+  vhost?: string
+  status?: number
+  size?: number | null
+  redirect?: string | null
 }
 
 // ---------------------------------------------------------------------------
 // Hosts & Ports (from scan results, returned by future endpoints)
 // ---------------------------------------------------------------------------
+
+export interface Credential {
+  id: string
+  project_id: string
+  source_scan: string | null
+  service: string | null
+  username: string | null
+  password: string | null
+  hash: string | null
+  hash_type: string | null
+  verified: boolean
+  created_at: string
+  updated_at: string
+}
 
 export interface Host {
   id: string

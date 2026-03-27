@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from backend.adapters import get_adapter, AdapterError, ToolNotInstalledError, ToolResult
 from backend.api.websocket.connection_manager import manager as ws_manager
 from backend.models.base import new_uuid
+from backend.models.credential import Credential
 from backend.models.finding import Finding
 from backend.models.host import Host
 from backend.models.port import Port
@@ -184,13 +185,26 @@ class ScanService:
             )
             self.db.add(finding)
 
+        # Credentials
+        for c in result.credentials:
+            cred = Credential(
+                id=new_uuid(),
+                project_id=scan.project_id,
+                source_scan=scan.id,
+                service=c.get("service"),
+                username=c.get("username"),
+                password=c.get("password"),
+                verified=True,
+            )
+            self.db.add(cred)
+
         scan.status = "completed"
         scan.finished_at = _now()
         self.db.commit()
 
         logger.info(
-            "[scan:%s] Persisted — %d hosts, %d ports, %d findings",
-            scan.id, len(result.hosts), len(result.ports), len(result.findings),
+            "[scan:%s] Persisted — %d hosts, %d ports, %d findings, %d credentials",
+            scan.id, len(result.hosts), len(result.ports), len(result.findings), len(result.credentials),
         )
 
     def _upsert_host(self, project_id: str, data: dict) -> Host:

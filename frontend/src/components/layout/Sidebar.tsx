@@ -5,6 +5,8 @@ import {
   ShieldAlert,
   FileBarChart,
   Settings,
+  SquareTerminal,
+  History,
   type LucideIcon
 } from 'lucide-react'
 import * as Tooltip from '@radix-ui/react-tooltip'
@@ -24,8 +26,10 @@ const NAV_ITEMS: NavItem[] = [
   { pageId: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { pageId: 'targets', icon: Crosshair, label: 'Targets', path: '/targets' },
   { pageId: 'scans', icon: Activity, label: 'Scans', path: '/scans' },
+  { pageId: 'history', icon: History, label: 'History', path: '/history' },
   { pageId: 'findings', icon: ShieldAlert, label: 'Findings', path: '/findings' },
-  { pageId: 'reports', icon: FileBarChart, label: 'Reports', path: '/reports' }
+  { pageId: 'reports', icon: FileBarChart, label: 'Reports', path: '/reports' },
+  { pageId: 'terminal', icon: SquareTerminal, label: 'Terminal', path: '/terminal' },
 ]
 
 const BOTTOM_ITEMS: NavItem[] = [
