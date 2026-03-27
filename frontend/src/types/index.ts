@@ -2,6 +2,7 @@ export type PageId =
   | 'dashboard'
   | 'targets'
   | 'scans'
+  | 'history'
   | 'findings'
   | 'reports'
   | 'terminal'
