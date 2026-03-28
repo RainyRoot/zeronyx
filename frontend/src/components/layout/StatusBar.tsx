@@ -23,8 +23,8 @@ export function StatusBar({ backendStatus, projectName }: StatusBarProps): JSX.E
 
       {/* Right */}
       <div className="flex items-center gap-3">
-        <span className="text-gray-700">Phase 1</span>
-        <span className="text-gray-700">ZeroNyx v0.1.0</span>
+        <span className="text-gray-700">ZeroNyx v0.5.0</span>
+        <span className="text-gray-700 cursor-default" title="Press ? for keyboard shortcuts">?</span>
       </div>
     </div>
   )
