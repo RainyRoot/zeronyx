@@ -103,6 +103,21 @@
 
 ---
 
+## Phase 6: Launch & Marketplace
+
+**Ziel:** Öffentlicher Launch.
+
+| # | Task | Status | Branch | Datum |
+|---|---|:---:|---|---|
+| 6.1 | Lizenz-System (RSA JWT, offline, feature gating) | ✅ | dev | 2026-03-28 |
+| 6.2 | Payment Integration (Stripe checkout, webhook, UpgradeButton) | ✅ | dev | 2026-03-28 |
+| 6.3 | Plugin Marketplace (Registry API, browse/search/install UI) | ✅ | dev | 2026-03-28 |
+| 6.4 | Website (Landing page, Docs page) | ✅ | dev | 2026-03-28 |
+| 6.5 | GitHub Repo (README, CONTRIBUTING, LICENSE, CI/CD) | ✅ | dev | 2026-03-28 |
+| 6.6 | Launch Marketing (Press kit, Social copy templates) | ✅ | dev | 2026-03-28 |
+
+---
+
 ## Phasen-Übersicht
 
 | Phase | Titel | Status |
@@ -112,7 +127,7 @@
 | 3 | Advanced Tools & Proxy | ✅ |
 | 4 | AI & Automation | ✅ |
 | 5 | Plugin-System & Polish | ✅ |
-| 6 | Launch & Marketplace | ⏳ |
+| 6 | Launch & Marketplace | ✅ |
 
 ---
 
