@@ -7,6 +7,12 @@ import {
   Settings,
   SquareTerminal,
   History,
+  Globe,
+  Skull,
+  Database,
+  Eye,
+  Radar,
+  Network,
   type LucideIcon
 } from 'lucide-react'
 import * as Tooltip from '@radix-ui/react-tooltip'
@@ -28,6 +34,12 @@ const NAV_ITEMS: NavItem[] = [
   { pageId: 'scans', icon: Activity, label: 'Scans', path: '/scans' },
   { pageId: 'history', icon: History, label: 'History', path: '/history' },
   { pageId: 'findings', icon: ShieldAlert, label: 'Findings', path: '/findings' },
+  { pageId: 'proxy', icon: Globe, label: 'Proxy', path: '/proxy' },
+  { pageId: 'metasploit', icon: Skull, label: 'Metasploit', path: '/metasploit' },
+  { pageId: 'sqlmap', icon: Database, label: 'SQLMap', path: '/sqlmap' },
+  { pageId: 'shodan', icon: Eye, label: 'Shodan', path: '/shodan' },
+  { pageId: 'censys', icon: Radar, label: 'Censys', path: '/censys' },
+  { pageId: 'hosts', icon: Network, label: 'Hosts', path: '/hosts' },
   { pageId: 'reports', icon: FileBarChart, label: 'Reports', path: '/reports' },
   { pageId: 'terminal', icon: SquareTerminal, label: 'Terminal', path: '/terminal' },
 ]
