@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { BookOpen, CheckCircle2, XCircle, Loader2, FolderOpen } from 'lucide-react'
+import { BookOpen, CheckCircle2, XCircle, Loader2, FolderOpen, BrainCircuit, Copy } from 'lucide-react'
 import { useProjectStore } from '@/stores/projectStore'
 import { exportApi } from '@/services/api'
 import { cn } from '@/lib/utils'
+
+const BASE_API = 'http://127.0.0.1:8742'
 
 type ExportState = 'idle' | 'fetching' | 'writing' | 'done' | 'error'
 
@@ -11,6 +13,126 @@ interface ExportResult {
   fileCount?: number
   error?: string
 }
+
+// ---------------------------------------------------------------------------
+// AI Report Generation component (4.7)
+// ---------------------------------------------------------------------------
+
+function AIReportCard(): JSX.Element {
+  const { projects, activeProject } = useProjectStore()
+  const [selectedId, setSelectedId] = useState<string>(activeProject?.id ?? '')
+  const [loading, setLoading] = useState(false)
+  const [report, setReport] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleGenerate = async () => {
+    if (!selectedId) return
+    setLoading(true)
+    setError(null)
+    setReport(null)
+    try {
+      const r = await fetch(`${BASE_API}/api/ai/analyse`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: selectedId,
+          context_type: 'project',
+          context_id: selectedId,
+          prompt_type: 'report',
+        }),
+      })
+      if (!r.ok) {
+        const data = await r.json()
+        throw new Error(data.detail ?? 'Report generation failed')
+      }
+      const data = await r.json()
+      setReport(data.response ?? '')
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="bg-[#1a1a1f] border border-[#2a2a32] rounded-lg overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-[#2a2a32]">
+        <div className="w-9 h-9 rounded-md bg-red-500/15 flex items-center justify-center shrink-0">
+          <BrainCircuit size={18} className="text-red-400" />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-gray-100">AI Report Generation</p>
+            <span className="text-[10px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded">PRO</span>
+          </div>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Generate an executive summary + technical pentest report using AI.
+          </p>
+        </div>
+      </div>
+
+      <div className="px-5 py-4 space-y-4">
+        {/* Project selector */}
+        <div>
+          <label className="block text-xs text-gray-400 mb-1.5">Project</label>
+          <select
+            value={selectedId}
+            onChange={e => { setSelectedId(e.target.value); setReport(null); setError(null) }}
+            disabled={loading}
+            className="w-full bg-[#111114] border border-[#2a2a32] rounded-md px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-red-500/50 disabled:opacity-50"
+          >
+            <option value="">— Select a project —</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-2.5 rounded-md bg-red-500/10 border border-red-500/20 px-4 py-3">
+            <XCircle size={14} className="text-red-400 mt-0.5 shrink-0" />
+            <p className="text-xs text-red-300">{error}</p>
+          </div>
+        )}
+
+        {report && (
+          <div className="relative">
+            <button
+              onClick={() => navigator.clipboard.writeText(report)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-300 transition-colors"
+              title="Copy to clipboard"
+            >
+              <Copy size={13} />
+            </button>
+            <div className="rounded-md bg-[#111114] border border-[#2a2a32] px-4 py-3 max-h-80 overflow-y-auto">
+              <pre className="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed font-mono">{report}</pre>
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={handleGenerate}
+          disabled={!selectedId || loading}
+          className={cn(
+            'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors',
+            'disabled:opacity-40 disabled:cursor-not-allowed',
+            loading
+              ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+              : 'bg-red-600 hover:bg-red-500 text-white',
+          )}
+        >
+          {loading ? <Loader2 size={15} className="animate-spin" /> : <BrainCircuit size={15} />}
+          {loading ? 'Generating…' : 'Generate AI Report'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Reports Page
+// ---------------------------------------------------------------------------
 
 export function ReportsPage(): JSX.Element {
   const { projects, activeProject } = useProjectStore()
@@ -59,9 +181,14 @@ export function ReportsPage(): JSX.Element {
   const isRunning = exportState === 'fetching' || exportState === 'writing'
 
   return (
-    <div className="p-6 max-w-2xl">
-      <h1 className="text-xl font-semibold text-gray-100 mb-1">Reports</h1>
-      <p className="text-sm text-gray-500 mb-6">Export engagement data as structured markdown notes.</p>
+    <div className="p-6 max-w-2xl space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold text-gray-100 mb-1">Reports</h1>
+        <p className="text-sm text-gray-500">Export engagement data and generate AI-powered reports.</p>
+      </div>
+
+      {/* AI Report Generation Card */}
+      <AIReportCard />
 
       {/* Obsidian Export Card */}
       <div className="bg-[#1a1a1f] border border-[#2a2a32] rounded-lg overflow-hidden">

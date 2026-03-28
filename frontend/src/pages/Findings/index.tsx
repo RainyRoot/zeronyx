@@ -3,7 +3,7 @@ import {
   ShieldAlert, Plus, Trash2, X, Search, Filter,
   AlertTriangle, AlertCircle, Info, CheckCircle,
   ChevronRight, Edit3, Check, KeyRound, Download,
-  ShieldCheck, Shield, Copy,
+  ShieldCheck, Shield, Copy, BrainCircuit, Loader2,
 } from 'lucide-react'
 import { useFindingStore } from '@/stores/findingStore'
 import { useCredentialStore } from '@/stores/credentialStore'
@@ -214,9 +214,42 @@ function AddFindingModal({
 // Finding detail panel
 // ---------------------------------------------------------------------------
 
+const BASE_API = 'http://127.0.0.1:8742'
+
 function DetailPanel({ finding, onClose }: { finding: Finding; onClose: () => void }): JSX.Element {
   const { updateFinding, deleteFinding, fetchStats } = useFindingStore()
   const [editingStatus, setEditingStatus] = useState(false)
+  const [aiLoading, setAiLoading]         = useState<string | null>(null)  // 'analyse' | 'fp'
+  const [aiResult, setAiResult]           = useState<{ type: string; text: string } | null>(null)
+  const [aiError, setAiError]             = useState<string | null>(null)
+
+  const runAI = async (promptType: 'analyse' | 'false_positive') => {
+    setAiLoading(promptType)
+    setAiResult(null)
+    setAiError(null)
+    try {
+      const r = await fetch(`${BASE_API}/api/ai/analyse`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: finding.project_id,
+          context_type: 'finding',
+          context_id: finding.id,
+          prompt_type: promptType,
+        }),
+      })
+      if (!r.ok) {
+        const data = await r.json()
+        throw new Error(data.detail ?? 'AI failed')
+      }
+      const data = await r.json()
+      setAiResult({ type: promptType, text: data.response ?? '' })
+    } catch (e) {
+      setAiError((e as Error).message)
+    } finally {
+      setAiLoading(null)
+    }
+  }
 
   const handleStatusChange = async (status: FindingStatus) => {
     await updateFinding(finding.id, { status })
@@ -340,6 +373,44 @@ function DetailPanel({ finding, onClose }: { finding: Finding; onClose: () => vo
             <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">{finding.remediation}</p>
           </div>
         )}
+
+        {/* AI Actions (4.2 / 4.4) */}
+        <div className="border-t border-[#2a2a32] pt-3 space-y-2">
+          <div className="text-xs text-gray-500 font-medium mb-2 flex items-center gap-1.5">
+            <BrainCircuit size={11} className="text-red-400/70" />
+            AI Analysis
+            <span className="text-[9px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1 py-0.5 rounded">PRO</span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => runAI('analyse')}
+              disabled={aiLoading !== null}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-300 rounded-lg transition-colors disabled:opacity-40"
+            >
+              {aiLoading === 'analyse' ? <Loader2 size={10} className="animate-spin" /> : <BrainCircuit size={10} />}
+              Analyse Finding
+            </button>
+            <button
+              onClick={() => runAI('false_positive')}
+              disabled={aiLoading !== null}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20 text-yellow-300 rounded-lg transition-colors disabled:opacity-40"
+            >
+              {aiLoading === 'false_positive' ? <Loader2 size={10} className="animate-spin" /> : <ShieldCheck size={10} />}
+              False Positive?
+            </button>
+          </div>
+          {aiError && (
+            <p className="text-[10px] text-red-400 font-mono">{aiError}</p>
+          )}
+          {aiResult && (
+            <div className="bg-[#111114] border border-[#2a2a32] rounded-lg p-3 max-h-48 overflow-y-auto">
+              <div className="text-[10px] text-gray-600 mb-1.5">
+                {aiResult.type === 'false_positive' ? 'False Positive Check' : 'Analysis'}
+              </div>
+              <p className="text-[11px] text-gray-300 whitespace-pre-wrap leading-relaxed">{aiResult.text}</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

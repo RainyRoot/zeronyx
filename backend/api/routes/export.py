@@ -345,3 +345,47 @@ def export_obsidian(project_id: str, db: Session = Depends(get_db)):
         file_count=len(files),
         files=files,
     )
+
+
+# ---------------------------------------------------------------------------
+# Auto-Sync to disk endpoint (4.8)
+# ---------------------------------------------------------------------------
+
+class SyncToDiskRequest(BaseModel):
+    vault_path: str | None = None  # override; falls back to user settings
+
+
+class SyncToDiskResponse(BaseModel):
+    vault_path: str
+    written: int
+    errors: int
+
+
+@router.post("/{project_id}/export/obsidian/sync-to-disk", response_model=SyncToDiskResponse)
+def sync_obsidian_to_disk(
+    project_id: str,
+    payload: SyncToDiskRequest,
+    db: Session = Depends(get_db),
+):
+    """Write Obsidian Markdown notes directly into a vault directory on disk."""
+    from backend.api.routes.app_settings import _load_user_settings
+    from backend.services.obsidian_sync_service import ObsidianSyncService
+
+    # Resolve vault path: request body overrides settings
+    user_settings = _load_user_settings()
+    vault_path = payload.vault_path or user_settings.get("obsidian_vault_path", "")
+    if not vault_path:
+        raise HTTPException(
+            status_code=400,
+            detail="No vault path configured. Set obsidian_vault_path in settings or pass vault_path in the request body.",
+        )
+
+    svc = ObsidianSyncService(vault_path)
+    try:
+        result = svc.sync_project(project_id, db)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=f"Cannot write to vault: {exc}")
+
+    return SyncToDiskResponse(vault_path=vault_path, **result)

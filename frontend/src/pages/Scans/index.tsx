@@ -3,7 +3,10 @@ import {
   Play, Square, Trash2, Terminal, Server, LayoutList,
   ChevronDown, AlertCircle, CheckCircle2, Clock, Loader2,
   Crosshair, Network, Globe, Search, FolderOpen, Zap,
+  BrainCircuit, Copy,
 } from 'lucide-react'
+
+const BASE_API = 'http://127.0.0.1:8742'
 import { useProjectStore } from '@/stores/projectStore'
 import { useTargetStore } from '@/stores/targetStore'
 import { useScanStore } from '@/stores/scanStore'
@@ -2428,10 +2431,88 @@ export function ScansPage(): JSX.Element {
               {activeScan.tool === 'searchsploit' && results.parsed && (
                 <SearchSploitResultsPanel parsed={results.parsed} />
               )}
+              {/* AI Scan Analysis (4.2) */}
+              <AIScanAnalysisPanel
+                scanId={activeScan.id}
+                projectId={activeScan.project_id}
+              />
             </>
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// AI Scan Analysis Panel (4.2)
+// ---------------------------------------------------------------------------
+
+function AIScanAnalysisPanel({ scanId, projectId }: { scanId: string; projectId: string }): JSX.Element {
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+
+  const handleAnalyse = async () => {
+    setLoading(true)
+    setError(null)
+    setResult(null)
+    setOpen(true)
+    try {
+      const r = await fetch(`${BASE_API}/api/ai/analyse`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: projectId,
+          context_type: 'scan',
+          context_id: scanId,
+          prompt_type: 'analyse',
+        }),
+      })
+      if (!r.ok) {
+        const data = await r.json()
+        throw new Error(data.detail ?? 'AI failed')
+      }
+      const data = await r.json()
+      setResult(data.response ?? '')
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="border-t border-[#2a2a32] mx-4 pt-3 pb-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <BrainCircuit size={13} className="text-red-400/70" />
+          <span className="text-xs text-gray-500 font-medium">AI Analysis</span>
+          <span className="text-[9px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1 py-0.5 rounded">PRO</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {result && (
+            <button onClick={() => navigator.clipboard.writeText(result)} className="text-gray-600 hover:text-gray-400 transition-colors">
+              <Copy size={11} />
+            </button>
+          )}
+          <button
+            onClick={handleAnalyse}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-300 rounded-lg transition-colors disabled:opacity-40"
+          >
+            {loading ? <Loader2 size={10} className="animate-spin" /> : <BrainCircuit size={10} />}
+            {loading ? 'Analysing…' : 'Analyse with AI'}
+          </button>
+        </div>
+      </div>
+      {error && <p className="text-[10px] text-red-400 font-mono">{error}</p>}
+      {open && result && (
+        <div className="bg-[#111114] border border-[#2a2a32] rounded-lg p-3 max-h-56 overflow-y-auto">
+          <pre className="text-[11px] text-gray-300 whitespace-pre-wrap leading-relaxed">{result}</pre>
+        </div>
+      )}
     </div>
   )
 }

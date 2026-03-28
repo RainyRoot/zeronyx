@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
   CheckCircle2, XCircle, RefreshCw, Save, AlertCircle,
-  Terminal, Folder, Clock, Info,
+  Terminal, Folder, Clock, Info, BrainCircuit, BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -18,6 +18,8 @@ interface UserSettings {
   data_dir: string
   version: string
   env: string
+  obsidian_vault_path?: string
+  obsidian_auto_sync?: boolean
 }
 
 interface ToolHealth {
@@ -48,6 +50,8 @@ export function SettingsPage(): JSX.Element {
   // Editable form state
   const [scanTimeout, setScanTimeout] = useState(600)
   const [toolPaths, setToolPaths] = useState<Record<string, string>>({})
+  const [obsidianVaultPath, setObsidianVaultPath] = useState('')
+  const [obsidianAutoSync, setObsidianAutoSync] = useState(false)
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -57,6 +61,8 @@ export function SettingsPage(): JSX.Element {
         setSettings(data)
         setScanTimeout(data.scan_timeout)
         setToolPaths(data.tool_paths ?? {})
+        setObsidianVaultPath(data.obsidian_vault_path ?? '')
+        setObsidianAutoSync(data.obsidian_auto_sync ?? false)
       }
     } catch { /* ignore */ }
   }, [])
@@ -89,6 +95,8 @@ export function SettingsPage(): JSX.Element {
         body: JSON.stringify({
           scan_timeout: scanTimeout,
           tool_paths: toolPaths,
+          obsidian_vault_path: obsidianVaultPath,
+          obsidian_auto_sync: obsidianAutoSync,
         }),
       })
       if (!res.ok) {
@@ -202,6 +210,43 @@ export function SettingsPage(): JSX.Element {
                 : `${Math.floor(scanTimeout / 60)}m ${scanTimeout % 60}s`}
             </span>
           </div>
+        </Section>
+
+        {/* ---- Obsidian Auto-Sync ----------------------------------- */}
+        <Section icon={<BookOpen size={15} />} title="Obsidian Auto-Sync">
+          <p className="text-xs text-gray-500 mb-3">
+            Automatically write scan notes as Markdown into an Obsidian vault after each scan completes.
+          </p>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <label className="text-xs text-gray-400 w-28 shrink-0">Vault Path</label>
+              <input
+                type="text"
+                value={obsidianVaultPath}
+                onChange={(e) => setObsidianVaultPath(e.target.value)}
+                placeholder="/path/to/your/ObsidianVault"
+                className="flex-1 bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-1.5 text-xs font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-red-500/50 transition-colors"
+              />
+            </div>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={obsidianAutoSync}
+                onChange={(e) => setObsidianAutoSync(e.target.checked)}
+                className="accent-red-500"
+              />
+              <span className="text-xs text-gray-300">Auto-sync after each scan</span>
+              <span className="text-[10px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded">PRO</span>
+            </label>
+          </div>
+        </Section>
+
+        {/* ---- AI Link ----------------------------------------------- */}
+        <Section icon={<BrainCircuit size={15} />} title="AI Settings">
+          <p className="text-xs text-gray-500">
+            Configure AI provider (Ollama, OpenAI, Anthropic) and API keys in the{' '}
+            <span className="text-red-400 font-medium">AI Analysis</span> page.
+          </p>
         </Section>
 
         {/* ---- Save -------------------------------------------------- */}

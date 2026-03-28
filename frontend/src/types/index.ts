@@ -10,6 +10,8 @@ export type PageId =
   | 'shodan'
   | 'censys'
   | 'hosts'
+  | 'ai'
+  | 'chains'
   | 'reports'
   | 'terminal'
   | 'settings'
@@ -312,4 +314,74 @@ export interface Port {
   service: string | null
   version: string | null
   banner: string | null
+}
+
+// ---------------------------------------------------------------------------
+// AI Analysis
+// ---------------------------------------------------------------------------
+
+export interface AIAnalysis {
+  id: string
+  project_id: string
+  context_type: string
+  context_id: string | null
+  provider: string | null
+  model: string | null
+  prompt_type: string | null
+  response: string | null
+  tokens_used: number | null
+  sanitized: boolean
+  created_at: string
+}
+
+export interface AISettings {
+  provider: 'ollama' | 'openai' | 'anthropic'
+  ollama_url: string
+  ollama_model: string
+  openai_api_key: string
+  openai_model: string
+  anthropic_api_key: string
+  anthropic_model: string
+  sanitize_before_cloud: boolean
+  enabled: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Chains
+// ---------------------------------------------------------------------------
+
+export interface ChainStep {
+  id: string
+  type: 'scan' | 'notify'
+  tool?: string
+  label?: string
+  config: Record<string, unknown>
+  depends_on?: string
+  condition?: string
+  continue_on_error?: boolean
+}
+
+export interface Chain {
+  id: string
+  project_id: string
+  name: string
+  description: string | null
+  steps: ChainStep[]
+  trigger_on: string
+  enabled: boolean
+  last_run: string | null
+  last_status: string | null
+  created_at: string
+}
+
+export interface ChainRun {
+  id: string
+  chain_id: string
+  project_id: string
+  status: string
+  step_results: Record<string, unknown>
+  error: string | null
+  started_at: string | null
+  finished_at: string | null
+  created_at: string
 }
