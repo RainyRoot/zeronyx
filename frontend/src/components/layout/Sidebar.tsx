@@ -12,6 +12,7 @@ import {
   Database,
   Eye,
   Radar,
+  Network,
   type LucideIcon
 } from 'lucide-react'
 import * as Tooltip from '@radix-ui/react-tooltip'
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { pageId: 'sqlmap', icon: Database, label: 'SQLMap', path: '/sqlmap' },
   { pageId: 'shodan', icon: Eye, label: 'Shodan', path: '/shodan' },
   { pageId: 'censys', icon: Radar, label: 'Censys', path: '/censys' },
+  { pageId: 'hosts', icon: Network, label: 'Hosts', path: '/hosts' },
   { pageId: 'reports', icon: FileBarChart, label: 'Reports', path: '/reports' },
   { pageId: 'terminal', icon: SquareTerminal, label: 'Terminal', path: '/terminal' },
 ]

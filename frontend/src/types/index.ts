@@ -9,6 +9,7 @@ export type PageId =
   | 'sqlmap'
   | 'shodan'
   | 'censys'
+  | 'hosts'
   | 'reports'
   | 'terminal'
   | 'settings'
