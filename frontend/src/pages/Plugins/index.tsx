@@ -1,12 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import {
   Puzzle, Upload, Trash2, ToggleLeft, ToggleRight,
   ShieldCheck, ShieldOff, Settings2, AlertTriangle,
   ChevronDown, ChevronUp, ExternalLink, FolderOpen,
-  CheckCircle2, XCircle, Package
+  CheckCircle2, XCircle, Package, Store, Search,
+  Star, Download, Tag, RefreshCw, Loader2,
 } from 'lucide-react'
 import { usePluginStore } from '@/stores/pluginStore'
 import type { Plugin, PluginPermission } from '@/types'
+import { cn } from '@/lib/utils'
+
+const BASE = 'http://127.0.0.1:8742'
 
 // ---------------------------------------------------------------------------
 // Permission labels
@@ -33,6 +37,26 @@ const RISK_COLORS = {
   low:    'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
   medium: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
   high:   'text-red-400 bg-red-500/10 border-red-500/20',
+}
+
+// ---------------------------------------------------------------------------
+// Marketplace types
+// ---------------------------------------------------------------------------
+
+interface MarketplacePlugin {
+  id: string
+  name: string
+  version: string
+  description: string
+  author: string
+  tags: string[]
+  stars: number
+  downloads: number
+  download_url: string
+  homepage: string
+  requires_pro: boolean
+  plugin_type: string
+  permissions: string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -255,7 +279,6 @@ function PluginCard({ plugin }: { plugin: Plugin }) {
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
-              {/* Grant permissions */}
               <button
                 onClick={handleGrantPerms}
                 title={plugin.permissions_granted ? 'Revoke permissions' : 'Grant permissions'}
@@ -268,7 +291,6 @@ function PluginCard({ plugin }: { plugin: Plugin }) {
                 {plugin.permissions_granted ? <ShieldCheck size={15} /> : <ShieldOff size={15} />}
               </button>
 
-              {/* Toggle */}
               <button
                 onClick={handleToggle}
                 title={plugin.enabled ? 'Disable plugin' : 'Enable plugin'}
@@ -281,7 +303,6 @@ function PluginCard({ plugin }: { plugin: Plugin }) {
                 {plugin.enabled ? <ToggleRight size={15} /> : <ToggleLeft size={15} />}
               </button>
 
-              {/* Settings expand */}
               <button
                 onClick={() => setExpanded((v) => !v)}
                 title="Settings"
@@ -290,7 +311,6 @@ function PluginCard({ plugin }: { plugin: Plugin }) {
                 <Settings2 size={15} />
               </button>
 
-              {/* Delete */}
               {confirmDelete ? (
                 <div className="flex items-center gap-1">
                   <button
@@ -334,7 +354,6 @@ function PluginCard({ plugin }: { plugin: Plugin }) {
 
         {expanded && (
           <div className="border-t border-[#2a2a32] p-4 space-y-4">
-            {/* Metadata */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
               <span className="text-gray-600">Plugin ID</span>
               <span className="text-gray-400 font-mono">{plugin.id}</span>
@@ -346,7 +365,6 @@ function PluginCard({ plugin }: { plugin: Plugin }) {
               <span className="text-gray-400">{plugin.hooks.join(', ') || '—'}</span>
             </div>
 
-            {/* Permissions */}
             {plugin.permissions.length > 0 && (
               <div>
                 <p className="text-xs text-gray-500 mb-1.5 font-medium">Permissions</p>
@@ -367,7 +385,6 @@ function PluginCard({ plugin }: { plugin: Plugin }) {
               </div>
             )}
 
-            {/* Settings */}
             <div>
               <p className="text-xs text-gray-500 mb-2 font-medium">Settings</p>
               <PluginSettingsPanel plugin={plugin} />
@@ -419,7 +436,6 @@ function InstallArea() {
 
   return (
     <div className="space-y-3">
-      {/* Drop zone */}
       <div
         onDrop={handleDrop}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
@@ -443,7 +459,6 @@ function InstallArea() {
         />
       </div>
 
-      {/* Dev mode: install from local dir */}
       <div className="flex gap-2">
         <div className="flex-1 flex items-center gap-2 bg-[#0f0f11] border border-[#2a2a32] rounded-lg px-3 py-2">
           <FolderOpen size={14} className="text-gray-600 shrink-0" />
@@ -475,11 +490,297 @@ function InstallArea() {
 }
 
 // ---------------------------------------------------------------------------
+// Marketplace tab
+// ---------------------------------------------------------------------------
+
+function MarketplaceTab({ installedIds }: { installedIds: Set<string> }) {
+  const [plugins, setPlugins] = useState<MarketplacePlugin[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [query, setQuery] = useState('')
+  const [activeTag, setActiveTag] = useState('')
+  const [tags, setTags] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [installingId, setInstallingId] = useState<string | null>(null)
+  const [installError, setInstallError] = useState<string | null>(null)
+  const [installSuccess, setInstallSuccess] = useState<string | null>(null)
+  const { fetchPlugins } = usePluginStore()
+
+  const PER_PAGE = 20
+
+  const fetchMarketplace = useCallback(async (pg: number, q: string, tag: string) => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({ page: String(pg), per_page: String(PER_PAGE) })
+      if (q) params.set('q', q)
+      if (tag) params.set('tag', tag)
+      const res = await fetch(`${BASE}/api/marketplace?${params}`)
+      if (!res.ok) throw new Error('Failed to load marketplace')
+      const data = await res.json()
+      setPlugins(data.plugins ?? [])
+      setTotal(data.total ?? 0)
+    } catch { /* silent — marketplace may be unavailable offline */ }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    fetch(`${BASE}/api/marketplace/tags`)
+      .then((r) => r.json())
+      .then((d) => setTags(d.tags ?? []))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    fetchMarketplace(page, query, activeTag)
+  }, [page, query, activeTag, fetchMarketplace])
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await fetch(`${BASE}/api/marketplace/refresh`, { method: 'POST' })
+    await fetchMarketplace(page, query, activeTag)
+    setRefreshing(false)
+  }
+
+  const handleInstall = async (plugin: MarketplacePlugin) => {
+    setInstallingId(plugin.id)
+    setInstallError(null)
+    setInstallSuccess(null)
+    try {
+      const res = await fetch(`${BASE}/api/marketplace/install`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ download_url: plugin.download_url }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.detail ?? 'Installation failed')
+      }
+      setInstallSuccess(plugin.id)
+      fetchPlugins()
+      setTimeout(() => setInstallSuccess(null), 3000)
+    } catch (e) {
+      setInstallError((e as Error).message)
+    }
+    setInstallingId(null)
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Search + controls */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 bg-[#111114] border border-[#2a2a32] rounded-lg px-3 py-2 focus-within:border-red-500/40 transition-colors">
+          <Search size={14} className="text-gray-600 shrink-0" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setPage(1) }}
+            placeholder="Search plugins…"
+            className="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-600 focus:outline-none"
+          />
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          title="Refresh registry"
+          className="p-2 rounded-lg border border-[#2a2a32] text-gray-600 hover:text-gray-300 hover:border-[#3a3a42] disabled:opacity-40 transition-colors"
+        >
+          <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+        </button>
+      </div>
+
+      {/* Tag filters */}
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => { setActiveTag(''); setPage(1) }}
+            className={cn(
+              'text-[11px] px-2.5 py-1 rounded-full border transition-colors',
+              !activeTag
+                ? 'bg-red-500/15 border-red-500/30 text-red-300'
+                : 'border-[#2a2a32] text-gray-500 hover:text-gray-300 hover:border-[#3a3a42]',
+            )}
+          >
+            All
+          </button>
+          {tags.map((t) => (
+            <button
+              key={t}
+              onClick={() => { setActiveTag(t === activeTag ? '' : t); setPage(1) }}
+              className={cn(
+                'flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full border transition-colors',
+                activeTag === t
+                  ? 'bg-red-500/15 border-red-500/30 text-red-300'
+                  : 'border-[#2a2a32] text-gray-500 hover:text-gray-300 hover:border-[#3a3a42]',
+              )}
+            >
+              <Tag size={9} />{t}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {installError && (
+        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
+          {installError}
+        </div>
+      )}
+
+      {/* Plugin grid */}
+      {loading ? (
+        <div className="grid gap-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-[#111114] border border-[#2a2a32] rounded-xl p-4 animate-pulse">
+              <div className="h-4 bg-[#2a2a32] rounded w-1/3 mb-2" />
+              <div className="h-3 bg-[#2a2a32] rounded w-2/3" />
+            </div>
+          ))}
+        </div>
+      ) : plugins.length === 0 ? (
+        <div className="text-center py-16">
+          <Store size={40} className="mx-auto mb-3 text-gray-700" />
+          <p className="text-gray-500 text-sm font-medium">
+            {query || activeTag ? 'No plugins match your search' : 'Marketplace unavailable'}
+          </p>
+          <p className="text-gray-600 text-xs mt-1">
+            {query || activeTag
+              ? 'Try a different search or clear the filters.'
+              : 'Check your internet connection or try refreshing.'}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {plugins.map((mp) => {
+            const isInstalled = installedIds.has(mp.id)
+            const isInstalling = installingId === mp.id
+            const justInstalled = installSuccess === mp.id
+
+            return (
+              <div
+                key={mp.id}
+                className="bg-[#111114] border border-[#2a2a32] hover:border-[#3a3a42] rounded-xl p-4 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-[#1a1a22] border border-[#2a2a32] flex items-center justify-center shrink-0">
+                      <Store size={15} className="text-purple-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-white font-medium text-sm">{mp.name}</span>
+                        <span className="text-xs text-gray-600 font-mono">v{mp.version}</span>
+                        {mp.requires_pro && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-purple-500/15 border border-purple-500/25 text-purple-300 rounded">PRO</span>
+                        )}
+                        {isInstalled && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded flex items-center gap-1">
+                            <CheckCircle2 size={9} /> Installed
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-500 text-xs mt-0.5">{mp.description}</p>
+                      <p className="text-gray-600 text-xs">by {mp.author}</p>
+
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <span className="flex items-center gap-1 text-[11px] text-gray-600">
+                          <Star size={10} className="text-yellow-600" /> {mp.stars.toLocaleString()}
+                        </span>
+                        <span className="flex items-center gap-1 text-[11px] text-gray-600">
+                          <Download size={10} /> {mp.downloads.toLocaleString()}
+                        </span>
+                        {mp.tags.slice(0, 3).map((t) => (
+                          <span
+                            key={t}
+                            onClick={() => { setActiveTag(t); setPage(1) }}
+                            className="text-[10px] px-1.5 py-0.5 rounded-full border border-[#2a2a32] text-gray-600 hover:text-gray-400 cursor-pointer transition-colors"
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {mp.homepage && (
+                      <a
+                        href={mp.homepage}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/5 transition-colors"
+                        title="View source"
+                      >
+                        <ExternalLink size={13} />
+                      </a>
+                    )}
+                    {justInstalled ? (
+                      <span className="flex items-center gap-1 text-xs text-emerald-400 px-3 py-1.5">
+                        <CheckCircle2 size={12} /> Done
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleInstall(mp)}
+                        disabled={isInstalled || isInstalling}
+                        className={cn(
+                          'flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors',
+                          isInstalled
+                            ? 'bg-[#1a1a22] border border-[#2a2a32] text-gray-600 cursor-default'
+                            : 'bg-red-600/80 hover:bg-red-600 text-white disabled:opacity-50',
+                        )}
+                      >
+                        {isInstalling ? (
+                          <><Loader2 size={11} className="animate-spin" /> Installing…</>
+                        ) : isInstalled ? (
+                          <><CheckCircle2 size={11} /> Installed</>
+                        ) : (
+                          <><Download size={11} /> Install</>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {total > PER_PAGE && (
+        <div className="flex items-center justify-between text-xs text-gray-500 pt-2">
+          <span>{total} plugins total</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 rounded-lg border border-[#2a2a32] hover:border-[#3a3a42] disabled:opacity-40 transition-colors"
+            >
+              Prev
+            </button>
+            <span className="px-3 py-1.5">Page {page} / {Math.ceil(total / PER_PAGE)}</span>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page >= Math.ceil(total / PER_PAGE)}
+              className="px-3 py-1.5 rounded-lg border border-[#2a2a32] hover:border-[#3a3a42] disabled:opacity-40 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 
+type Tab = 'installed' | 'marketplace'
+
 export default function PluginsPage() {
   const { plugins, loading, error, fetchPlugins } = usePluginStore()
+  const [tab, setTab] = useState<Tab>('installed')
 
   useEffect(() => {
     fetchPlugins()
@@ -487,6 +788,7 @@ export default function PluginsPage() {
 
   const active = plugins.filter((p) => p.enabled && p.permissions_granted)
   const inactive = plugins.filter((p) => !p.enabled || !p.permissions_granted)
+  const installedIds = new Set(plugins.map((p) => p.id))
 
   return (
     <div className="p-6 space-y-6 max-w-3xl mx-auto">
@@ -518,59 +820,85 @@ export default function PluginsPage() {
         </div>
       </div>
 
-      {/* Install */}
-      <div className="bg-[#111114] border border-[#2a2a32] rounded-xl p-4">
-        <h2 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
-          <Package size={14} className="text-gray-500" />
-          Install Plugin
-        </h2>
-        <InstallArea />
+      {/* Tab bar */}
+      <div className="flex border-b border-[#2a2a32]">
+        {([
+          { id: 'installed', label: 'Installed', icon: <Puzzle size={13} /> },
+          { id: 'marketplace', label: 'Marketplace', icon: <Store size={13} /> },
+        ] as { id: Tab; label: string; icon: React.ReactNode }[]).map(({ id, label, icon }) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
+              tab === id
+                ? 'border-red-500 text-red-400'
+                : 'border-transparent text-gray-500 hover:text-gray-300',
+            )}
+          >
+            {icon}
+            {label}
+          </button>
+        ))}
       </div>
 
-      {/* Plugin list */}
-      {loading && plugins.length === 0 && (
-        <div className="space-y-3">
-          {[1, 2].map((i) => (
-            <div key={i} className="bg-[#111114] border border-[#2a2a32] rounded-xl p-4 animate-pulse">
-              <div className="h-4 bg-[#2a2a32] rounded w-1/3 mb-2" />
-              <div className="h-3 bg-[#2a2a32] rounded w-2/3" />
+      {/* Tab content */}
+      {tab === 'installed' && (
+        <>
+          {/* Install */}
+          <div className="bg-[#111114] border border-[#2a2a32] rounded-xl p-4">
+            <h2 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+              <Package size={14} className="text-gray-500" />
+              Install Plugin
+            </h2>
+            <InstallArea />
+          </div>
+
+          {/* Plugin list */}
+          {loading && plugins.length === 0 && (
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <div key={i} className="bg-[#111114] border border-[#2a2a32] rounded-xl p-4 animate-pulse">
+                  <div className="h-4 bg-[#2a2a32] rounded w-1/3 mb-2" />
+                  <div className="h-3 bg-[#2a2a32] rounded w-2/3" />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+
+          {!loading && plugins.length === 0 && (
+            <div className="text-center py-16">
+              <Puzzle size={40} className="mx-auto mb-3 text-gray-700" />
+              <p className="text-gray-500 text-sm font-medium">No plugins installed</p>
+              <p className="text-gray-600 text-xs mt-1">
+                Install a plugin from a <code className="text-gray-500">.zeronyx-plugin</code> file,{' '}
+                local directory, or browse the{' '}
+                <button onClick={() => setTab('marketplace')} className="text-red-400 hover:underline">
+                  Marketplace
+                </button>.
+              </p>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
+              {error}
+            </div>
+          )}
+
+          {plugins.length > 0 && (
+            <div className="space-y-3">
+              {plugins.map((plugin) => (
+                <PluginCard key={plugin.id} plugin={plugin} />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      {!loading && plugins.length === 0 && (
-        <div className="text-center py-16">
-          <Puzzle size={40} className="mx-auto mb-3 text-gray-700" />
-          <p className="text-gray-500 text-sm font-medium">No plugins installed</p>
-          <p className="text-gray-600 text-xs mt-1">
-            Install a plugin from a <code className="text-gray-500">.zeronyx-plugin</code> file or local directory above.
-          </p>
-        </div>
+      {tab === 'marketplace' && (
+        <MarketplaceTab installedIds={installedIds} />
       )}
-
-      {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
-          {error}
-        </div>
-      )}
-
-      {plugins.length > 0 && (
-        <div className="space-y-3">
-          {plugins.map((plugin) => (
-            <PluginCard key={plugin.id} plugin={plugin} />
-          ))}
-        </div>
-      )}
-
-      {/* Marketplace hint */}
-      <div className="flex items-center justify-between p-4 bg-[#0f0f11] border border-[#2a2a32] rounded-xl">
-        <div>
-          <p className="text-sm text-gray-400 font-medium">Plugin Marketplace</p>
-          <p className="text-xs text-gray-600">Discover community plugins — coming in Phase 6.</p>
-        </div>
-        <ExternalLink size={16} className="text-gray-700" />
-      </div>
     </div>
   )
 }

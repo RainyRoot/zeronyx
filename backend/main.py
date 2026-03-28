@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 
 from backend.config import settings
 from backend import models  # noqa: F401 — registers all models with Base.metadata
-from backend.api.routes import projects, targets, scans, findings, app_settings, export, credentials, proxy, metasploit, shodan, censys, hosts, ai, chains, plugins, license, payments
+from backend.api.routes import projects, targets, scans, findings, app_settings, export, credentials, proxy, metasploit, shodan, censys, hosts, ai, chains, plugins, license, payments, marketplace
 from backend.api.websocket import scan_stream
 
 logging.basicConfig(
@@ -141,6 +141,7 @@ app.include_router(chains.router, prefix="/api")
 app.include_router(plugins.router, prefix="/api")
 app.include_router(license.router, prefix="/api")
 app.include_router(payments.router, prefix="/api")
+app.include_router(marketplace.router, prefix="/api")
 
 # WebSocket routers
 app.include_router(scan_stream.router)
