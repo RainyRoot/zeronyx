@@ -2,9 +2,11 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   CheckCircle2, XCircle, RefreshCw, Save, AlertCircle,
   Terminal, Folder, Clock, Info, BrainCircuit, BookOpen, Download,
+  KeyRound, ShieldCheck, Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUpdateState } from '@/components/ui/update-banner'
+import { useLicenseStore } from '@/stores/licenseStore'
 
 const BASE = 'http://127.0.0.1:8742'
 
@@ -41,6 +43,7 @@ interface ToolHealthResponse {
 // ---------------------------------------------------------------------------
 
 export function SettingsPage(): JSX.Element {
+  const fetchLicense = useLicenseStore((s) => s.fetch)
   const [settings, setSettings] = useState<UserSettings | null>(null)
   const [toolHealth, setToolHealth] = useState<ToolHealthResponse | null>(null)
   const [isLoadingHealth, setIsLoadingHealth] = useState(false)
@@ -83,7 +86,8 @@ export function SettingsPage(): JSX.Element {
   useEffect(() => {
     fetchSettings()
     fetchToolHealth()
-  }, [fetchSettings, fetchToolHealth])
+    fetchLicense()
+  }, [fetchSettings, fetchToolHealth, fetchLicense])
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -274,6 +278,9 @@ export function SettingsPage(): JSX.Element {
           )}
         </div>
 
+        {/* ---- License ---------------------------------------------- */}
+        <LicenseSection />
+
         {/* ---- About + Updater --------------------------------------- */}
         {settings && (
           <Section icon={<Info size={15} />} title="About">
@@ -398,6 +405,145 @@ function ToolHealthRow({ tool }: { tool: ToolHealth }) {
         <span className="text-[10px] text-gray-700 ml-auto">not found</span>
       )}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// License section
+// ---------------------------------------------------------------------------
+
+function LicenseSection() {
+  const { status, loading, error, activate, deactivate } = useLicenseStore()
+  const [keyInput, setKeyInput] = useState('')
+  const [activating, setActivating] = useState(false)
+  const [activateError, setActivateError] = useState<string | null>(null)
+  const [activateSuccess, setActivateSuccess] = useState(false)
+
+  const handleActivate = async () => {
+    if (!keyInput.trim()) return
+    setActivating(true)
+    setActivateError(null)
+    setActivateSuccess(false)
+    try {
+      await activate(keyInput.trim())
+      setActivateSuccess(true)
+      setKeyInput('')
+      setTimeout(() => setActivateSuccess(false), 4000)
+    } catch (e) {
+      setActivateError((e as Error).message)
+    }
+    setActivating(false)
+  }
+
+  const handleDeactivate = async () => {
+    await deactivate()
+  }
+
+  const tier = status?.tier ?? 'community'
+  const tierLabel = tier === 'enterprise' ? 'Enterprise' : tier === 'pro' ? 'Pro' : 'Community'
+  const tierColor =
+    tier === 'enterprise'
+      ? 'text-yellow-300 bg-yellow-500/10 border-yellow-500/25'
+      : tier === 'pro'
+      ? 'text-purple-300 bg-purple-500/10 border-purple-500/25'
+      : 'text-gray-400 bg-gray-500/10 border-gray-500/20'
+
+  return (
+    <Section icon={<KeyRound size={15} />} title="License">
+      {/* Current status */}
+      <div className="flex items-center gap-3 mb-5">
+        <span className={cn('flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border', tierColor)}>
+          {tier === 'pro' || tier === 'enterprise'
+            ? <ShieldCheck size={11} />
+            : <Zap size={11} />}
+          ZeroNyx {tierLabel}
+        </span>
+        {status?.activated && status.email && (
+          <span className="text-xs text-gray-500">{status.email}</span>
+        )}
+        {status?.is_expired && (
+          <span className="text-xs text-red-400 font-medium">License expired</span>
+        )}
+        {status?.expires_at && !status.is_expired && (
+          <span className="text-xs text-gray-600">
+            Expires {new Date(status.expires_at).toLocaleDateString()}
+          </span>
+        )}
+        {status?.activated && !status.expires_at && (
+          <span className="text-xs text-gray-600">Perpetual</span>
+        )}
+      </div>
+
+      {/* Features unlocked */}
+      {status?.activated && status.features.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-5">
+          {status.features.map((f) => (
+            <span
+              key={f}
+              className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300"
+            >
+              {f}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Activate input */}
+      {!status?.activated && (
+        <div className="space-y-2">
+          <p className="text-xs text-gray-500 mb-3">
+            Enter your Pro license key to unlock AI analysis, chain automation, plugin marketplace, and advanced reporting.
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleActivate()}
+              placeholder="Paste your license key here…"
+              className="flex-1 bg-[#16161a] border border-[#2a2a32] rounded-lg px-3 py-1.5 text-xs font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-purple-500/50 transition-colors"
+            />
+            <button
+              onClick={handleActivate}
+              disabled={activating || loading || !keyInput.trim()}
+              className="px-4 py-1.5 text-xs font-medium bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white rounded-lg transition-colors"
+            >
+              {activating ? 'Activating…' : 'Activate'}
+            </button>
+          </div>
+          {activateError && (
+            <p className="flex items-center gap-1.5 text-xs text-red-400">
+              <AlertCircle size={11} /> {activateError}
+            </p>
+          )}
+          {activateSuccess && (
+            <p className="flex items-center gap-1.5 text-xs text-green-400">
+              <CheckCircle2 size={11} /> License activated successfully!
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Deactivate */}
+      {status?.activated && (
+        <div className="flex items-center justify-between border-t border-[#2a2a32] pt-4 mt-2">
+          <div className="text-xs text-gray-600 font-mono truncate max-w-xs" title={status.machine_id}>
+            Machine: {status.machine_id.slice(0, 16)}…
+          </div>
+          <button
+            onClick={handleDeactivate}
+            disabled={loading}
+            className="text-xs text-gray-600 hover:text-red-400 transition-colors disabled:opacity-40"
+          >
+            Deactivate
+          </button>
+        </div>
+      )}
+
+      {error && !activateError && (
+        <p className="text-xs text-red-400 mt-2">{error}</p>
+      )}
+    </Section>
   )
 }
 
