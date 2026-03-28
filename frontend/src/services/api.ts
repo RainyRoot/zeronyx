@@ -238,3 +238,52 @@ export const projectsApi = {
     return request<void>('DELETE', `/api/projects/${id}`)
   },
 }
+
+// ---------------------------------------------------------------------------
+// Plugins
+// ---------------------------------------------------------------------------
+
+import type { Plugin } from '@/types'
+
+export const pluginsApi = {
+  list(): Promise<Plugin[]> {
+    return request<Plugin[]>('GET', '/api/plugins')
+  },
+
+  get(id: string): Promise<Plugin> {
+    return request<Plugin>('GET', `/api/plugins/${id}`)
+  },
+
+  installDir(path: string): Promise<Plugin> {
+    return request<Plugin>('POST', '/api/plugins/install-dir', { path })
+  },
+
+  uninstall(id: string): Promise<void> {
+    return request<void>('DELETE', `/api/plugins/${id}`)
+  },
+
+  toggle(id: string, enabled: boolean): Promise<Plugin> {
+    return request<Plugin>('PATCH', `/api/plugins/${id}/toggle`, { enabled })
+  },
+
+  grantPermissions(id: string, granted: boolean): Promise<Plugin> {
+    return request<Plugin>('PATCH', `/api/plugins/${id}/permissions`, { granted })
+  },
+
+  updateSettings(id: string, values: Record<string, unknown>): Promise<Plugin> {
+    return request<Plugin>('PATCH', `/api/plugins/${id}/settings`, { values })
+  },
+
+  installFromFile(file: File): Promise<Plugin> {
+    const form = new FormData()
+    form.append('file', file)
+    return fetch(`${BASE}/api/plugins/install`, { method: 'POST', body: form })
+      .then(async (res) => {
+        if (!res.ok) {
+          const payload = await res.json().catch(() => null)
+          throw new Error(payload?.detail ?? `Install failed: ${res.status}`)
+        }
+        return res.json() as Promise<Plugin>
+      })
+  },
+}

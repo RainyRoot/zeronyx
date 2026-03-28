@@ -15,6 +15,7 @@ import {
   Network,
   BrainCircuit,
   Workflow,
+  Puzzle,
   type LucideIcon
 } from 'lucide-react'
 import * as Tooltip from '@radix-ui/react-tooltip'
@@ -45,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
   { pageId: 'ai', icon: BrainCircuit, label: 'AI Analysis', path: '/ai' },
   { pageId: 'chains', icon: Workflow, label: 'Chains', path: '/chains' },
   { pageId: 'reports', icon: FileBarChart, label: 'Reports', path: '/reports' },
+  { pageId: 'plugins', icon: Puzzle, label: 'Plugins', path: '/plugins' },
   { pageId: 'terminal', icon: SquareTerminal, label: 'Terminal', path: '/terminal' },
 ]
 
