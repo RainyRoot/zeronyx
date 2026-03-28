@@ -8,6 +8,7 @@ export type PageId =
   | 'metasploit'
   | 'sqlmap'
   | 'shodan'
+  | 'censys'
   | 'reports'
   | 'terminal'
   | 'settings'
