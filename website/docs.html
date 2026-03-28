@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Docs — ZeroNyx</title>
+  <meta name="description" content="ZeroNyx documentation — installation, quick start, plugin SDK, and API reference." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0d; --surface: #111114; --surface2: #16161a;
+      --border: #2a2a32; --red: #e53e3e;
+      --text: #e2e8f0; --muted: #718096; --muted2: #4a5568;
+      --code-bg: #0d0d10;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: #fc8181; }
+    a:hover { color: #feb2b2; }
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 60px;
+      background: rgba(10,10,13,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { display: flex; align-items: center; gap: .6rem; font-size: 1rem; font-weight: 700; text-decoration: none; color: var(--text); }
+    .nav-logo svg { width: 24px; height: 24px; }
+    .docs-layout { display: flex; max-width: 1100px; margin: 0 auto; padding: 2rem; gap: 3rem; }
+    aside { width: 220px; flex-shrink: 0; position: sticky; top: 80px; height: fit-content; }
+    aside ul { list-style: none; display: flex; flex-direction: column; gap: .3rem; }
+    aside li a {
+      display: block; padding: .35rem .75rem; border-radius: 6px;
+      font-size: .875rem; color: var(--muted); transition: all .15s;
+    }
+    aside li a:hover { color: var(--text); background: var(--surface); }
+    aside li a.active { color: var(--red); background: rgba(229,62,62,.08); }
+    aside .section-head { font-size: .7rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted2); padding: .75rem .75rem .25rem; }
+    main { flex: 1; min-width: 0; }
+    main h1 { font-size: 2rem; font-weight: 800; letter-spacing: -.03em; margin-bottom: .75rem; }
+    main h2 { font-size: 1.25rem; font-weight: 700; margin: 2.5rem 0 .75rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+    main h3 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 .5rem; color: #a0aec0; }
+    main p { color: var(--muted); margin-bottom: 1rem; }
+    main ul, main ol { padding-left: 1.5rem; color: var(--muted); margin-bottom: 1rem; }
+    main li { margin-bottom: .3rem; }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1rem 1.25rem; overflow-x: auto; margin: 1rem 0;
+    }
+    code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: .85em; color: #e2e8f0; }
+    p code, li code { background: var(--surface2); padding: .15em .4em; border-radius: 4px; color: #fc8181; font-size: .85em; }
+    .callout {
+      background: rgba(229,62,62,.07); border: 1px solid rgba(229,62,62,.2);
+      border-radius: 10px; padding: 1rem 1.25rem; margin: 1rem 0;
+      font-size: .9rem; color: #fc8181;
+    }
+    .callout.info { background: rgba(118,169,250,.07); border-color: rgba(118,169,250,.2); color: #93c5fd; }
+    @media (max-width: 768px) {
+      .docs-layout { flex-direction: column; }
+      aside { position: static; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="nav-logo">
+    <svg viewBox="0 0 28 28" fill="none">
+      <rect width="28" height="28" rx="8" fill="#e53e3e" fill-opacity=".15"/>
+      <path d="M8 20 L14 8 L20 20" stroke="#e53e3e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M10.5 15.5 H17.5" stroke="#e53e3e" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    ZeroNyx Docs
+  </a>
+  <a href="https://github.com/RainyRoot/zeronyx" target="_blank" rel="noopener" style="color:var(--muted);font-size:.875rem">GitHub</a>
+</nav>
+
+<div class="docs-layout">
+  <aside>
+    <ul>
+      <li class="section-head">Getting Started</li>
+      <li><a href="#introduction" class="active">Introduction</a></li>
+      <li><a href="#installation">Installation</a></li>
+      <li><a href="#quickstart">Quick Start</a></li>
+
+      <li class="section-head">Features</li>
+      <li><a href="#projects">Projects</a></li>
+      <li><a href="#scanning">Scanning</a></li>
+      <li><a href="#proxy">Proxy</a></li>
+      <li><a href="#ai">AI Analysis</a></li>
+      <li><a href="#chains">Chain Automation</a></li>
+      <li><a href="#plugins">Plugins</a></li>
+
+      <li class="section-head">Reference</li>
+      <li><a href="#rest-api">REST API</a></li>
+      <li><a href="#plugin-sdk">Plugin SDK</a></li>
+      <li><a href="#license">License System</a></li>
+    </ul>
+  </aside>
+
+  <main>
+    <h1>ZeroNyx Documentation</h1>
+    <p>Welcome to ZeroNyx — the desktop-based all-in-one pentesting suite. This documentation covers installation, all core features, and the Plugin SDK.</p>
+
+    <h2 id="introduction">Introduction</h2>
+    <p>ZeroNyx is built on three principles:</p>
+    <ul>
+      <li><strong>Orchestrator, not bundler</strong> — ZeroNyx launches external tools as subprocesses and parses their output. Your existing tool installations just work.</li>
+      <li><strong>Project-based</strong> — Every engagement is a separate project with its own SQLite database. Data stays local and organized.</li>
+      <li><strong>Free must be good</strong> — The Community edition is not a demo. It includes all scanning tools, findings management, the proxy, and credential store.</li>
+    </ul>
+
+    <h2 id="installation">Installation</h2>
+    <h3>Download</h3>
+    <p>Download the latest release for your platform from <a href="https://github.com/RainyRoot/zeronyx/releases">GitHub Releases</a>:</p>
+    <ul>
+      <li><strong>Linux</strong> — <code>.AppImage</code> or <code>.deb</code></li>
+      <li><strong>macOS</strong> — <code>.dmg</code></li>
+      <li><strong>Windows</strong> — <code>.exe</code> installer</li>
+    </ul>
+
+    <h3>External Tools</h3>
+    <p>ZeroNyx requires the tools to be installed separately on your system. Install them via your package manager:</p>
+    <pre><code># Kali / Debian / Ubuntu
+sudo apt install nmap nuclei nikto gobuster hydra sqlmap exploitdb
+
+# Arch
+sudo pacman -S nmap hydra sqlmap
+
+# macOS (Homebrew)
+brew install nmap hydra sqlmap</code></pre>
+    <div class="callout info">ZeroNyx will auto-detect tools on first launch and show their status in Settings → Tool Health.</div>
+
+    <h2 id="quickstart">Quick Start</h2>
+    <ol>
+      <li>Launch ZeroNyx and create a new Project (name + scope).</li>
+      <li>Add your target(s) in the Targets tab (IP, domain, CIDR, or URL).</li>
+      <li>Click <strong>New Scan</strong>, choose a tool, configure parameters, and run.</li>
+      <li>View real-time output in the terminal pane, then review parsed results.</li>
+      <li>Findings are automatically normalized and stored under Findings.</li>
+    </ol>
+
+    <h2 id="projects">Projects</h2>
+    <p>Each project is a separate engagement. ZeroNyx stores all project data in a dedicated SQLite file at <code>~/.zeronyx/projects/{name}.db</code>. Projects can be archived when complete.</p>
+
+    <h2 id="scanning">Scanning</h2>
+    <p>ZeroNyx supports the following tools via the Unified Scan Interface:</p>
+    <ul>
+      <li><strong>nmap</strong> — Port scanning, OS detection, service fingerprinting</li>
+      <li><strong>nuclei</strong> — Template-based vulnerability scanning</li>
+      <li><strong>nikto</strong> — Web server misconfiguration scanning</li>
+      <li><strong>gobuster / ffuf</strong> — Directory and subdomain enumeration</li>
+      <li><strong>hydra</strong> — Credential brute-forcing</li>
+      <li><strong>sqlmap</strong> — SQL injection detection and exploitation</li>
+      <li><strong>metasploit</strong> — Exploit framework integration</li>
+      <li><strong>searchsploit</strong> — ExploitDB search</li>
+      <li><strong>shodan / censys</strong> — OSINT and passive recon</li>
+    </ul>
+    <p>All scan output is streamed live via WebSocket and stored in the database for later review.</p>
+
+    <h2 id="proxy">HTTP(S) Proxy</h2>
+    <p>ZeroNyx includes a full mitmproxy integration. Configure your browser or tool to use <code>127.0.0.1:8080</code> as an HTTP proxy. The Proxy page shows all intercepted requests with:</p>
+    <ul>
+      <li>Full request/response headers and body</li>
+      <li>Search and filter by host, method, status code</li>
+      <li>Replay any request</li>
+      <li>Modify and forward requests (Pro)</li>
+    </ul>
+
+    <h2 id="ai">AI Analysis</h2>
+    <p>Connect an AI provider in <strong>AI Analysis → Settings</strong>:</p>
+    <ul>
+      <li><strong>Ollama</strong> (default) — Fully local, no API key, complete privacy</li>
+      <li><strong>OpenAI</strong> — GPT-4 for complex analysis</li>
+      <li><strong>Anthropic</strong> — Claude for detailed technical reports</li>
+    </ul>
+    <p>After any scan, click <strong>Analyse with AI</strong> to get:</p>
+    <ul>
+      <li>Risk-prioritized finding summary</li>
+      <li>False-positive identification</li>
+      <li>Concrete next-step recommendations</li>
+      <li>Full engagement report generation</li>
+    </ul>
+    <div class="callout">AI Analysis requires ZeroNyx Pro.</div>
+
+    <h2 id="chains">Chain Automation</h2>
+    <p>Chains define multi-step workflows that run automatically. Built-in chains:</p>
+    <ul>
+      <li><strong>Quick Recon</strong> — Nmap → SearchSploit → Shodan</li>
+      <li><strong>Full Web Audit</strong> — Nmap → Nikto → Gobuster → Nuclei</li>
+      <li><strong>Network Sweep</strong> — Nmap sweep → per-host port scans</li>
+      <li><strong>Credential Attack</strong> — Hydra against discovered services</li>
+    </ul>
+    <p>Chains can be triggered manually, on scan completion, or on a schedule. Custom chains can be built in the Chains UI.</p>
+    <div class="callout">Chain Automation requires ZeroNyx Pro.</div>
+
+    <h2 id="plugins">Plugins</h2>
+    <p>Plugins are <code>.zeronyx-plugin</code> archives (renamed zip files) containing:</p>
+    <ul>
+      <li>A <code>manifest.json</code> defining metadata, permissions, hooks, and UI slots</li>
+      <li>An optional Python backend module</li>
+      <li>An optional pre-compiled JavaScript frontend bundle</li>
+    </ul>
+    <p>Install plugins via <strong>Plugins → Install</strong> (drag &amp; drop) or from the <strong>Marketplace</strong> tab with one click.</p>
+
+    <h2 id="rest-api">REST API</h2>
+    <p>The backend exposes a full REST API at <code>http://127.0.0.1:8742</code>. In development mode (<code>ENV=dev</code>), interactive API docs are available at <code>/docs</code>.</p>
+    <pre><code>GET  /api/projects
+POST /api/projects
+GET  /api/targets
+POST /api/scans/run
+GET  /api/findings
+GET  /api/license/status
+POST /api/license/activate
+GET  /api/marketplace</code></pre>
+
+    <h2 id="plugin-sdk">Plugin SDK</h2>
+    <p>See the <a href="https://github.com/RainyRoot/zeronyx/blob/main/docs/PLUGIN_SDK.md">PLUGIN_SDK.md</a> for the full developer reference. Quick example:</p>
+    <pre><code>from zeronyx.sdk import ZeroNyxPlugin, PluginContext
+
+class MyPlugin(ZeroNyxPlugin):
+    async def on_scan_complete(self, ctx: PluginContext) -> None:
+        scan = ctx.scan
+        await ctx.api.create_finding(
+            title=f"Custom check on {scan.target}",
+            severity="info",
+        )</code></pre>
+
+    <h2 id="license">License System</h2>
+    <p>ZeroNyx uses offline-capable RSA-signed JWT license keys. After purchase, you receive a key by e-mail. Activate it in <strong>Settings → License</strong>.</p>
+    <p>License keys are verified against an embedded RSA public key — no internet connection required for activation or verification.</p>
+  </main>
+</div>
+</body>
+</html>

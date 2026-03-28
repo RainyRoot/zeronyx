@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZeroNyx — From Zero to Pwned</title>
+  <meta name="description" content="ZeroNyx is a desktop-based all-in-one pentesting suite. From reconnaissance to exploitation and reporting — in a single tool." />
+  <meta property="og:title" content="ZeroNyx — From Zero to Pwned" />
+  <meta property="og:description" content="The all-in-one pentesting suite for professionals. Nmap, Nuclei, SQLMap, Metasploit, AI analysis — all unified." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0d;
+      --surface: #111114;
+      --surface2: #16161a;
+      --border: #2a2a32;
+      --red: #e53e3e;
+      --red-dark: #c53030;
+      --purple: #7c3aed;
+      --text: #e2e8f0;
+      --muted: #718096;
+      --muted2: #4a5568;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ---- NAV ---- */
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 64px;
+      background: rgba(10,10,13,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em;
+    }
+    .nav-logo svg { width: 28px; height: 28px; }
+    .nav-links {
+      display: flex; align-items: center; gap: 2rem;
+      list-style: none;
+    }
+    .nav-links a { color: var(--muted); font-size: 0.875rem; transition: color .15s; }
+    .nav-links a:hover { color: var(--text); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.5rem 1.1rem; border-radius: 8px;
+      font-size: 0.875rem; font-weight: 600; cursor: pointer;
+      transition: all .15s; border: none;
+    }
+    .btn-primary { background: var(--red); color: #fff; }
+    .btn-primary:hover { background: var(--red-dark); }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .btn-outline:hover { border-color: #4a4a58; color: var(--text); }
+    .btn-purple { background: var(--purple); color: #fff; }
+    .btn-purple:hover { filter: brightness(1.1); }
+
+    /* ---- HERO ---- */
+    .hero {
+      text-align: center;
+      padding: 7rem 2rem 5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(229,62,62,.12), transparent);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.3rem 0.9rem;
+      background: rgba(229,62,62,.1); border: 1px solid rgba(229,62,62,.25);
+      border-radius: 999px; font-size: 0.75rem; color: #fc8181;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800; letter-spacing: -0.04em;
+      line-height: 1.05; margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, #fff 40%, #a0aec0);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero .tagline {
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: var(--muted); max-width: 560px; margin: 0 auto 2.5rem;
+    }
+    .hero-actions { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+    .hero-actions .btn { padding: 0.65rem 1.5rem; font-size: 0.9375rem; }
+
+    /* ---- SCREENSHOT ---- */
+    .screenshot-wrap {
+      max-width: 960px; margin: 4rem auto; padding: 0 2rem;
+    }
+    .screenshot-frame {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0,0,0,.6);
+    }
+    .screenshot-bar {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.6rem 1rem; background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .screenshot-body {
+      background: #0f0f13; height: 380px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted2); font-family: monospace; font-size: 0.875rem;
+    }
+    /* Fake UI inside screenshot */
+    .fake-ui { width: 100%; height: 100%; display: flex; }
+    .fake-sidebar {
+      width: 56px; background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; align-items: center;
+      padding: 1rem 0; gap: 0.5rem;
+    }
+    .fake-dot { width: 28px; height: 28px; border-radius: 8px; background: var(--border); }
+    .fake-dot.active { background: rgba(229,62,62,.2); border: 1px solid rgba(229,62,62,.4); }
+    .fake-main { flex: 1; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    .fake-topbar { display: flex; gap: 0.5rem; }
+    .fake-tab {
+      padding: 0.3rem 0.75rem; border-radius: 6px 6px 0 0;
+      background: var(--surface); border: 1px solid var(--border); border-bottom: none;
+      font-size: 0.7rem; color: var(--muted);
+    }
+    .fake-tab.active { background: var(--surface2); color: var(--text); }
+    .fake-rows { display: flex; flex-direction: column; gap: 0.4rem; }
+    .fake-row {
+      height: 32px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; display: flex; align-items: center; padding: 0 0.75rem; gap: 0.5rem;
+    }
+    .fake-pill {
+      height: 10px; border-radius: 3px; background: var(--border);
+    }
+    .fake-badge {
+      padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.6rem;
+      background: rgba(229,62,62,.15); border: 1px solid rgba(229,62,62,.25); color: #fc8181;
+    }
+
+    /* ---- FEATURES ---- */
+    section { padding: 5rem 2rem; }
+    .section-label {
+      text-align: center; font-size: 0.75rem; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--red); margin-bottom: 0.75rem;
+    }
+    h2.section-title {
+      text-align: center; font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 800; letter-spacing: -0.03em; margin-bottom: 1rem;
+    }
+    .section-sub {
+      text-align: center; color: var(--muted); max-width: 540px;
+      margin: 0 auto 3rem; font-size: 1rem;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem; max-width: 1100px; margin: 0 auto;
+    }
+    .feature-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.5rem;
+      transition: border-color .2s, transform .2s;
+    }
+    .feature-card:hover { border-color: #3a3a48; transform: translateY(-2px); }
+    .feature-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: rgba(229,62,62,.1); border: 1px solid rgba(229,62,62,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; margin-bottom: 1rem;
+    }
+    .feature-card h3 { font-size: 0.9375rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .feature-card p { color: var(--muted); font-size: 0.875rem; line-height: 1.55; }
+
+    /* ---- TOOLS ---- */
+    .tools-section { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .tools-grid {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem;
+      max-width: 800px; margin: 0 auto;
+    }
+    .tool-badge {
+      padding: 0.4rem 0.9rem; border-radius: 8px;
+      background: var(--surface2); border: 1px solid var(--border);
+      font-size: 0.8125rem; font-family: monospace; color: var(--muted);
+      transition: all .15s;
+    }
+    .tool-badge:hover { border-color: rgba(229,62,62,.4); color: #fc8181; }
+
+    /* ---- PRICING ---- */
+    #pricing { background: var(--bg); }
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem; max-width: 860px; margin: 0 auto;
+    }
+    .pricing-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2rem; position: relative;
+    }
+    .pricing-card.featured {
+      border-color: rgba(229,62,62,.4);
+      box-shadow: 0 0 40px rgba(229,62,62,.08);
+    }
+    .pricing-featured-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--red); color: #fff; font-size: 0.7rem; font-weight: 700;
+      padding: 0.25rem 0.75rem; border-radius: 999px; letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .pricing-tier { font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+    .pricing-price { font-size: 2.5rem; font-weight: 800; margin: 0.5rem 0; }
+    .pricing-price span { font-size: 0.9rem; color: var(--muted); }
+    .pricing-desc { color: var(--muted); font-size: 0.875rem; margin-bottom: 1.5rem; }
+    .pricing-features { list-style: none; margin-bottom: 2rem; display: flex; flex-direction: column; gap: 0.6rem; }
+    .pricing-features li {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-size: 0.875rem; color: var(--muted);
+    }
+    .pricing-features li .check { color: #68d391; font-size: 1rem; }
+    .pricing-features li .cross { color: var(--muted2); }
+
+    /* ---- CTA ---- */
+    .cta-section {
+      text-align: center; padding: 6rem 2rem;
+      background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(229,62,62,.07), transparent);
+    }
+    .cta-section h2 { font-size: clamp(1.75rem, 4vw, 3rem); font-weight: 800; letter-spacing: -0.03em; margin-bottom: 1rem; }
+    .cta-section p { color: var(--muted); max-width: 520px; margin: 0 auto 2.5rem; }
+    .cta-actions { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+
+    /* ---- FOOTER ---- */
+    footer {
+      border-top: 1px solid var(--border); padding: 2.5rem 2rem;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;
+    }
+    footer .footer-links { display: flex; gap: 1.5rem; }
+    footer a { color: var(--muted); font-size: 0.875rem; }
+    footer a:hover { color: var(--text); }
+    footer .footer-copy { color: var(--muted2); font-size: 0.8125rem; }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 1rem; }
+      .nav-links { display: none; }
+      .hero { padding: 5rem 1.5rem 4rem; }
+      section { padding: 4rem 1.5rem; }
+      footer { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <svg viewBox="0 0 28 28" fill="none">
+      <rect width="28" height="28" rx="8" fill="#e53e3e" fill-opacity=".15"/>
+      <path d="M8 20 L14 8 L20 20" stroke="#e53e3e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M10.5 15.5 H17.5" stroke="#e53e3e" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    ZeroNyx
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#tools">Tools</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="https://github.com/RainyRoot/zeronyx" target="_blank" rel="noopener">GitHub</a></li>
+    <li><a href="/docs">Docs</a></li>
+  </ul>
+  <div style="display:flex;gap:.75rem">
+    <a href="https://github.com/RainyRoot/zeronyx/releases" class="btn btn-outline">Download Free</a>
+    <a href="#pricing" class="btn btn-primary">Get Pro</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="#fc8181"><circle cx="5" cy="5" r="5"/></svg>
+    Now in Beta — Free Community Edition Available
+  </div>
+  <h1>From Zero<br />to Pwned</h1>
+  <p class="tagline">
+    The desktop pentesting suite that unifies every phase of your engagement —
+    recon, scanning, exploitation, and reporting — in one professional tool.
+  </p>
+  <div class="hero-actions">
+    <a href="https://github.com/RainyRoot/zeronyx/releases" class="btn btn-primary">
+      ↓ Download Free
+    </a>
+    <a href="#pricing" class="btn btn-purple">
+      ⚡ Upgrade to Pro
+    </a>
+    <a href="https://github.com/RainyRoot/zeronyx" target="_blank" rel="noopener" class="btn btn-outline">
+      ☆ Star on GitHub
+    </a>
+  </div>
+</section>
+
+<!-- SCREENSHOT -->
+<div class="screenshot-wrap">
+  <div class="screenshot-frame">
+    <div class="screenshot-bar">
+      <div class="dot" style="background:#ff5f57"></div>
+      <div class="dot" style="background:#febc2e"></div>
+      <div class="dot" style="background:#28c840"></div>
+      <span style="margin-left:.5rem;font-size:.7rem;color:#4a5568">ZeroNyx — Project: corp-pentest-2026</span>
+    </div>
+    <div class="screenshot-body">
+      <div class="fake-ui">
+        <div class="fake-sidebar">
+          <div class="fake-dot"></div>
+          <div class="fake-dot active"></div>
+          <div class="fake-dot"></div>
+          <div class="fake-dot"></div>
+          <div class="fake-dot"></div>
+          <div class="fake-dot"></div>
+        </div>
+        <div class="fake-main">
+          <div class="fake-topbar">
+            <div class="fake-tab active">Scan History</div>
+            <div class="fake-tab">Findings</div>
+            <div class="fake-tab">Hosts</div>
+          </div>
+          <div class="fake-rows">
+            <div class="fake-row">
+              <div class="fake-pill" style="width:60px"></div>
+              <div class="fake-badge">nmap</div>
+              <div class="fake-pill" style="width:100px"></div>
+              <div style="margin-left:auto;display:flex;gap:.4rem">
+                <div class="fake-pill" style="width:40px;background:rgba(104,211,145,.2)"></div>
+              </div>
+            </div>
+            <div class="fake-row">
+              <div class="fake-pill" style="width:60px"></div>
+              <div class="fake-badge" style="background:rgba(252,129,74,.15);border-color:rgba(252,129,74,.3);color:#f6ad55">nuclei</div>
+              <div class="fake-pill" style="width:120px"></div>
+              <div style="margin-left:auto;display:flex;gap:.4rem">
+                <div class="fake-pill" style="width:40px;background:rgba(229,62,62,.2)"></div>
+              </div>
+            </div>
+            <div class="fake-row">
+              <div class="fake-pill" style="width:60px"></div>
+              <div class="fake-badge" style="background:rgba(118,169,250,.15);border-color:rgba(118,169,250,.3);color:#93c5fd">sqlmap</div>
+              <div class="fake-pill" style="width:80px"></div>
+              <div style="margin-left:auto;display:flex;gap:.4rem">
+                <div class="fake-pill" style="width:40px;background:rgba(104,211,145,.2)"></div>
+              </div>
+            </div>
+            <div class="fake-row">
+              <div class="fake-pill" style="width:60px"></div>
+              <div class="fake-badge" style="background:rgba(167,139,250,.15);border-color:rgba(167,139,250,.3);color:#c4b5fd">hydra</div>
+              <div class="fake-pill" style="width:90px"></div>
+              <div style="margin-left:auto;display:flex;gap:.4rem">
+                <div class="fake-pill" style="width:40px;background:rgba(104,211,145,.2)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <p class="section-label">What's inside</p>
+  <h2 class="section-title">Everything a pentester needs</h2>
+  <p class="section-sub">ZeroNyx orchestrates your tools, parses their output, and surfaces what matters — so you can focus on the engagement.</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <h3>Unified Scan Interface</h3>
+      <p>Run Nmap, Nuclei, Nikto, Gobuster, SQLMap, and more from a single interface. Real-time output streaming over WebSocket.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🌐</div>
+      <h3>HTTP(S) Proxy</h3>
+      <p>Built-in mitmproxy integration with request/response inspection, modification, and replay. Full history with search.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <h3>AI Analysis</h3>
+      <p>Run findings through Ollama, OpenAI, or Anthropic. Prioritized risk assessment, false-positive detection, and next-step recommendations.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⛓️</div>
+      <h3>Chain Automation</h3>
+      <p>Define multi-step workflows that auto-run on scan completion. Quick Recon, Full Web Audit, Network Sweep — all automated.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Finding Management</h3>
+      <p>Normalized findings across all tools. CVSS scoring, CVE links, evidence attachments, and status tracking.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📝</div>
+      <h3>Report Generation</h3>
+      <p>Professional HTML/PDF reports with AI-generated executive summaries and technical findings, ready for client delivery.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔌</div>
+      <h3>Plugin System</h3>
+      <p>Extend ZeroNyx with community plugins. Full SDK for building custom backend integrations and frontend UI slots.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔐</div>
+      <h3>Credential Store</h3>
+      <p>Captured credentials are stored securely and can be fed directly into follow-up Hydra brute-force attacks.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📦</div>
+      <h3>Obsidian Sync</h3>
+      <p>Automatically export scan notes as structured Markdown into your Obsidian vault after every scan completes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TOOLS -->
+<section class="tools-section" id="tools">
+  <p class="section-label">Integrated Tools</p>
+  <h2 class="section-title">All your favourites, unified</h2>
+  <p class="section-sub">ZeroNyx wraps external tools as subprocesses — GPL-compliant, no bundling, no lock-in.</p>
+  <div class="tools-grid">
+    <span class="tool-badge">nmap</span>
+    <span class="tool-badge">nuclei</span>
+    <span class="tool-badge">nikto</span>
+    <span class="tool-badge">gobuster</span>
+    <span class="tool-badge">ffuf</span>
+    <span class="tool-badge">hydra</span>
+    <span class="tool-badge">sqlmap</span>
+    <span class="tool-badge">searchsploit</span>
+    <span class="tool-badge">msfconsole</span>
+    <span class="tool-badge">mitmproxy</span>
+    <span class="tool-badge">shodan</span>
+    <span class="tool-badge">censys</span>
+    <span class="tool-badge">ollama</span>
+    <span class="tool-badge">openai</span>
+    <span class="tool-badge">anthropic</span>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <p class="section-label">Pricing</p>
+  <h2 class="section-title">Simple, honest pricing</h2>
+  <p class="section-sub">The Community edition is a real, capable tool — not a crippled demo. Pro unlocks automation and AI.</p>
+
+  <div class="pricing-grid">
+    <!-- Community -->
+    <div class="pricing-card">
+      <div class="pricing-tier">Community</div>
+      <div class="pricing-price">Free <span>forever</span></div>
+      <div class="pricing-desc">Open source on GitHub. No telemetry, no account required.</div>
+      <ul class="pricing-features">
+        <li><span class="check">✓</span> All 12+ integrated tools</li>
+        <li><span class="check">✓</span> Scan history &amp; findings</li>
+        <li><span class="check">✓</span> HTTP(S) Proxy</li>
+        <li><span class="check">✓</span> Credential store</li>
+        <li><span class="check">✓</span> Basic HTML reports</li>
+        <li><span class="check">✓</span> Plugin installation</li>
+        <li><span class="cross">–</span> AI Analysis</li>
+        <li><span class="cross">–</span> Chain Automation</li>
+        <li><span class="cross">–</span> Obsidian Auto-Sync</li>
+        <li><span class="cross">–</span> Plugin Marketplace</li>
+      </ul>
+      <a href="https://github.com/RainyRoot/zeronyx/releases" class="btn btn-outline" style="width:100%;justify-content:center">
+        Download Free
+      </a>
+    </div>
+
+    <!-- Pro -->
+    <div class="pricing-card featured">
+      <div class="pricing-featured-badge">MOST POPULAR</div>
+      <div class="pricing-tier">Pro</div>
+      <div class="pricing-price">$9 <span>/ month</span></div>
+      <div class="pricing-desc">For professional pentesters and bug bounty hunters.</div>
+      <ul class="pricing-features">
+        <li><span class="check">✓</span> Everything in Community</li>
+        <li><span class="check">✓</span> AI Analysis (Ollama/OpenAI/Anthropic)</li>
+        <li><span class="check">✓</span> Chain Automation Engine</li>
+        <li><span class="check">✓</span> Obsidian Auto-Sync</li>
+        <li><span class="check">✓</span> Plugin Marketplace access</li>
+        <li><span class="check">✓</span> Advanced PDF/HTML Reports</li>
+        <li><span class="check">✓</span> Priority support</li>
+        <li><span class="check">✓</span> Early access to new features</li>
+      </ul>
+      <a href="https://buy.stripe.com/zeronyx_pro" class="btn btn-primary" style="width:100%;justify-content:center">
+        Get Pro — $9/mo
+      </a>
+    </div>
+
+    <!-- Enterprise -->
+    <div class="pricing-card">
+      <div class="pricing-tier">Enterprise</div>
+      <div class="pricing-price">$49 <span>/ month</span></div>
+      <div class="pricing-desc">For red teams and security consultancies.</div>
+      <ul class="pricing-features">
+        <li><span class="check">✓</span> Everything in Pro</li>
+        <li><span class="check">✓</span> Team / multi-user mode</li>
+        <li><span class="check">✓</span> Custom branding on reports</li>
+        <li><span class="check">✓</span> Dedicated support channel</li>
+        <li><span class="check">✓</span> Perpetual license option</li>
+        <li><span class="check">✓</span> SLA-backed response time</li>
+      </ul>
+      <a href="mailto:enterprise@zeronyx.io" class="btn btn-outline" style="width:100%;justify-content:center">
+        Contact Sales
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>Start your next engagement today</h2>
+  <p>Download the free Community edition and see why ZeroNyx is the tool pentesters actually want to use.</p>
+  <div class="cta-actions">
+    <a href="https://github.com/RainyRoot/zeronyx/releases" class="btn btn-primary" style="font-size:.9375rem;padding:.65rem 1.5rem">
+      ↓ Download Free
+    </a>
+    <a href="https://github.com/RainyRoot/zeronyx" target="_blank" rel="noopener" class="btn btn-outline" style="font-size:.9375rem;padding:.65rem 1.5rem">
+      ☆ Star on GitHub
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <a href="/" class="nav-logo" style="font-size:.95rem">
+    <svg viewBox="0 0 28 28" fill="none" style="width:22px;height:22px">
+      <rect width="28" height="28" rx="8" fill="#e53e3e" fill-opacity=".15"/>
+      <path d="M8 20 L14 8 L20 20" stroke="#e53e3e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M10.5 15.5 H17.5" stroke="#e53e3e" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    ZeroNyx
+  </a>
+  <div class="footer-links">
+    <a href="https://github.com/RainyRoot/zeronyx" target="_blank" rel="noopener">GitHub</a>
+    <a href="/docs">Docs</a>
+    <a href="https://github.com/RainyRoot/zeronyx/blob/main/docs/PLUGIN_SDK.md">Plugin SDK</a>
+    <a href="mailto:hello@zeronyx.io">Contact</a>
+    <a href="https://github.com/RainyRoot/zeronyx/blob/main/LICENSE">License</a>
+  </div>
+  <span class="footer-copy">© 2026 ZeroNyx. MIT License for Community edition.</span>
+</footer>
+
+</body>
+</html>
