@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://zeronyx.io/plugin-manifest.schema.json",
+  "title": "ZeroNyx Plugin Manifest",
+  "description": "Schema for ZeroNyx plugin manifest.json",
+  "type": "object",
+  "required": ["id", "name", "version", "description", "author", "zeronyx_min_version"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique plugin identifier (kebab-case, globally unique)",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "minLength": 3,
+      "maxLength": 64
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable plugin name",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version string (e.g. 1.0.0)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of what the plugin does",
+      "maxLength": 512
+    },
+    "author": {
+      "type": "string",
+      "description": "Author name or handle",
+      "maxLength": 128
+    },
+    "homepage": {
+      "type": "string",
+      "description": "URL to plugin homepage or repository",
+      "format": "uri"
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX license identifier (e.g. MIT, Apache-2.0)",
+      "maxLength": 64
+    },
+    "zeronyx_min_version": {
+      "type": "string",
+      "description": "Minimum ZeroNyx version required (e.g. 0.1.0)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "type": {
+      "type": "string",
+      "description": "Plugin type: backend-only, frontend-only, or both",
+      "enum": ["backend", "frontend", "both"],
+      "default": "both"
+    },
+    "permissions": {
+      "type": "array",
+      "description": "List of permissions the plugin requires",
+      "items": {
+        "type": "string",
+        "enum": [
+          "scan:read",
+          "scan:write",
+          "findings:read",
+          "findings:write",
+          "targets:read",
+          "targets:write",
+          "credentials:read",
+          "credentials:write",
+          "hosts:read",
+          "proxy:read",
+          "settings:read",
+          "network:outbound",
+          "filesystem:read",
+          "filesystem:write"
+        ]
+      },
+      "uniqueItems": true,
+      "default": []
+    },
+    "entry_backend": {
+      "type": "string",
+      "description": "Path to backend Python entry point (relative to plugin root)",
+      "default": "main.py"
+    },
+    "entry_frontend": {
+      "type": "string",
+      "description": "Path to compiled frontend JS bundle (relative to plugin root)",
+      "default": "dist/index.js"
+    },
+    "ui_slots": {
+      "type": "array",
+      "description": "UI slots this plugin wants to render into",
+      "items": {
+        "type": "string",
+        "enum": [
+          "sidebar_nav",
+          "dashboard_widget",
+          "scan_result_panel",
+          "finding_detail_panel",
+          "target_panel",
+          "toolbar_action",
+          "settings_tab",
+          "report_section"
+        ]
+      },
+      "uniqueItems": true,
+      "default": []
+    },
+    "hooks": {
+      "type": "array",
+      "description": "Backend lifecycle hooks this plugin subscribes to",
+      "items": {
+        "type": "string",
+        "enum": [
+          "on_scan_complete",
+          "on_finding_created",
+          "on_target_added",
+          "on_project_opened",
+          "on_report_generate"
+        ]
+      },
+      "uniqueItems": true,
+      "default": []
+    },
+    "settings": {
+      "type": "object",
+      "description": "Plugin-configurable settings exposed in the Settings UI",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["type", "label"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["string", "number", "boolean", "select"]
+          },
+          "label": { "type": "string" },
+          "description": { "type": "string" },
+          "required": { "type": "boolean", "default": false },
+          "secret": {
+            "type": "boolean",
+            "description": "If true, value is stored encrypted and masked in UI",
+            "default": false
+          },
+          "default": {},
+          "options": {
+            "type": "array",
+            "description": "Options for select type",
+            "items": {
+              "type": "object",
+              "required": ["value", "label"],
+              "properties": {
+                "value": { "type": "string" },
+                "label": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "default": {}
+    }
+  }
+}

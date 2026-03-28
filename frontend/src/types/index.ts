@@ -14,6 +14,7 @@ export type PageId =
   | 'chains'
   | 'reports'
   | 'terminal'
+  | 'plugins'
   | 'settings'
 
 export interface Tab {
@@ -384,4 +385,86 @@ export interface ChainRun {
   started_at: string | null
   finished_at: string | null
   created_at: string
+}
+
+// ---------------------------------------------------------------------------
+// Plugin System
+// ---------------------------------------------------------------------------
+
+export type PluginPermission =
+  | 'scan:read' | 'scan:write'
+  | 'findings:read' | 'findings:write'
+  | 'targets:read' | 'targets:write'
+  | 'credentials:read' | 'credentials:write'
+  | 'hosts:read'
+  | 'proxy:read'
+  | 'settings:read'
+  | 'network:outbound'
+  | 'filesystem:read' | 'filesystem:write'
+
+export type PluginUiSlot =
+  | 'sidebar_nav'
+  | 'dashboard_widget'
+  | 'scan_result_panel'
+  | 'finding_detail_panel'
+  | 'target_panel'
+  | 'toolbar_action'
+  | 'settings_tab'
+  | 'report_section'
+
+export type PluginHook =
+  | 'on_scan_complete'
+  | 'on_finding_created'
+  | 'on_target_added'
+  | 'on_project_opened'
+  | 'on_report_generate'
+
+export type PluginType = 'backend' | 'frontend' | 'both'
+
+export interface PluginSettingSchema {
+  type: 'string' | 'number' | 'boolean' | 'select'
+  label: string
+  description?: string
+  required?: boolean
+  secret?: boolean
+  default?: unknown
+  options?: Array<{ value: string; label: string }>
+}
+
+export interface PluginManifest {
+  id: string
+  name: string
+  version: string
+  description: string
+  author: string
+  homepage?: string
+  license?: string
+  zeronyx_min_version: string
+  type: PluginType
+  permissions: PluginPermission[]
+  entry_backend?: string
+  entry_frontend?: string
+  ui_slots: PluginUiSlot[]
+  hooks: PluginHook[]
+  settings: Record<string, PluginSettingSchema>
+}
+
+export interface Plugin {
+  id: string
+  name: string
+  version: string
+  description: string
+  author: string
+  plugin_type: PluginType
+  install_path: string
+  permissions: PluginPermission[]
+  ui_slots: PluginUiSlot[]
+  hooks: PluginHook[]
+  settings: Record<string, PluginSettingSchema>
+  settings_values: Record<string, unknown>
+  enabled: boolean
+  permissions_granted: boolean
+  installed_at: string
+  updated_at: string
+  error: string | null
 }

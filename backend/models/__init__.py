@@ -12,6 +12,7 @@ from backend.models.note import Note
 from backend.models.proxy_request import ProxyRequest
 from backend.models.ai_analysis import AIAnalysis
 from backend.models.chain import Chain, ChainRun
+from backend.models.plugin import Plugin
 
 __all__ = [
     "Base",
@@ -29,4 +30,5 @@ __all__ = [
     "AIAnalysis",
     "Chain",
     "ChainRun",
+    "Plugin",
 ]
