@@ -1,5 +1,6 @@
 import { spawn, ChildProcess } from 'child_process'
-import { join, existsSync } from 'path'
+import { join } from 'path'
+import { existsSync } from 'fs'
 import { app, ipcMain } from 'electron'
 import { is } from '@electron-toolkit/utils'
 
