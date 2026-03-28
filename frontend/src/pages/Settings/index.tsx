@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
   CheckCircle2, XCircle, RefreshCw, Save, AlertCircle,
-  Terminal, Folder, Clock, Info, BrainCircuit, BookOpen,
+  Terminal, Folder, Clock, Info, BrainCircuit, BookOpen, Download,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useUpdateState } from '@/components/ui/update-banner'
 
 const BASE = 'http://127.0.0.1:8742'
 
@@ -273,16 +274,17 @@ export function SettingsPage(): JSX.Element {
           )}
         </div>
 
-        {/* ---- About ------------------------------------------------- */}
+        {/* ---- About + Updater --------------------------------------- */}
         {settings && (
           <Section icon={<Info size={15} />} title="About">
-            <dl className="space-y-1.5 text-xs">
+            <dl className="space-y-1.5 text-xs mb-4">
               <AboutRow label="Version">{settings.version}</AboutRow>
               <AboutRow label="Environment">{settings.env}</AboutRow>
               <AboutRow label="Data Directory">
                 <span className="font-mono text-gray-400 break-all">{settings.data_dir}</span>
               </AboutRow>
             </dl>
+            <UpdateSection />
           </Section>
         )}
 
@@ -294,6 +296,63 @@ export function SettingsPage(): JSX.Element {
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
+
+function UpdateSection() {
+  const { state, checkForUpdates } = useUpdateState()
+  const [checking, setChecking] = useState(false)
+  const [checkedMsg, setCheckedMsg] = useState<string | null>(null)
+
+  const handleCheck = async () => {
+    setChecking(true)
+    setCheckedMsg(null)
+    await checkForUpdates()
+    setChecking(false)
+    setCheckedMsg('Check started — you will be notified if an update is available.')
+    setTimeout(() => setCheckedMsg(null), 4000)
+  }
+
+  return (
+    <div className="border-t border-[#2a2a32] pt-4 flex items-center justify-between gap-4">
+      <div className="text-xs">
+        {state.type === 'idle' && (
+          <span className="text-gray-600">Auto-update enabled. Updates are checked on startup.</span>
+        )}
+        {state.type === 'available' && (
+          <span className="text-blue-400">v{state.version} — downloading update…</span>
+        )}
+        {state.type === 'downloading' && (
+          <span className="text-blue-400">Downloading update… {state.percent}%</span>
+        )}
+        {state.type === 'ready' && (
+          <span className="text-emerald-400">v{state.version} ready! Restart to install.</span>
+        )}
+        {checkedMsg && !['available','downloading','ready'].includes(state.type) && (
+          <span className="text-gray-500">{checkedMsg}</span>
+        )}
+      </div>
+      <div className="flex gap-2 shrink-0">
+        {state.type === 'ready' ? (
+          <button
+            onClick={() => window.updaterAPI?.installUpdate()}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-emerald-600/80 hover:bg-emerald-600 text-white rounded-lg transition-colors"
+          >
+            <RefreshCw size={12} />
+            Restart & Install
+          </button>
+        ) : (
+          <button
+            onClick={handleCheck}
+            disabled={checking || state.type === 'downloading'}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#0f0f11] border border-[#2a2a32] text-gray-400 hover:text-gray-200 hover:border-[#3a3a42] disabled:opacity-40 rounded-lg transition-colors"
+          >
+            <Download size={12} className={checking ? 'animate-bounce' : ''} />
+            Check for Updates
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function Section({
   icon, title, action, children,
