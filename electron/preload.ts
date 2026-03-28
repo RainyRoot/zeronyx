@@ -44,6 +44,12 @@ const exportAPI = {
     ipcRenderer.invoke('export:writeVault', { files, defaultName }),
 }
 
+// Open external URL in system browser
+const electronAPI2 = {
+  openExternal: (url: string): void =>
+    ipcRenderer.send('shell:openExternal', url),
+}
+
 // Auto-updater bridge
 const updaterAPI = {
   checkForUpdates: (): Promise<{ ok?: boolean; dev?: boolean; inProgress?: boolean; error?: string }> =>
@@ -96,6 +102,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('terminalAPI', terminalAPI)
     contextBridge.exposeInMainWorld('exportAPI', exportAPI)
     contextBridge.exposeInMainWorld('updaterAPI', updaterAPI)
+    contextBridge.exposeInMainWorld('electronAPI', electronAPI2)
   } catch (error) {
     console.error(error)
   }

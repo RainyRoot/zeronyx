@@ -152,6 +152,13 @@ app.whenReady().then(async () => {
   setupTerminalIpc()
   setupExportIpc()
   setupAutoUpdater(() => mainWindow)
+
+  // Open URLs in system browser (used by UpgradeButton)
+  ipcMain.on('shell:openExternal', (_event, url: string) => {
+    if (typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://'))) {
+      shell.openExternal(url)
+    }
+  })
   await backendManager.start()
   createWindow()
 

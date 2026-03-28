@@ -7,6 +7,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useUpdateState } from '@/components/ui/update-banner'
 import { useLicenseStore } from '@/stores/licenseStore'
+import { UpgradeButton } from '@/components/common/UpgradeButton'
 
 const BASE = 'http://127.0.0.1:8742'
 
@@ -491,9 +492,12 @@ function LicenseSection() {
       {/* Activate input */}
       {!status?.activated && (
         <div className="space-y-2">
-          <p className="text-xs text-gray-500 mb-3">
-            Enter your Pro license key to unlock AI analysis, chain automation, plugin marketplace, and advanced reporting.
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs text-gray-500">
+              Enter your Pro license key to unlock AI analysis, chain automation, plugin marketplace, and advanced reporting.
+            </p>
+            <UpgradeButton size="sm" label="Get Pro" className="shrink-0 ml-4" />
+          </div>
           <div className="flex gap-2">
             <input
               type="text"
