@@ -60,3 +60,4 @@ from backend.adapters import nikto_adapter         # noqa: E402, F401
 from backend.adapters import hydra_adapter         # noqa: E402, F401
 from backend.adapters import searchsploit_adapter  # noqa: E402, F401
 from backend.adapters import metasploit_adapter    # noqa: E402, F401
+from backend.adapters import sqlmap_adapter        # noqa: E402, F401

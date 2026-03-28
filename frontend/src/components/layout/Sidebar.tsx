@@ -9,6 +9,7 @@ import {
   History,
   Globe,
   Skull,
+  Database,
   type LucideIcon
 } from 'lucide-react'
 import * as Tooltip from '@radix-ui/react-tooltip'
@@ -32,6 +33,7 @@ const NAV_ITEMS: NavItem[] = [
   { pageId: 'findings', icon: ShieldAlert, label: 'Findings', path: '/findings' },
   { pageId: 'proxy', icon: Globe, label: 'Proxy', path: '/proxy' },
   { pageId: 'metasploit', icon: Skull, label: 'Metasploit', path: '/metasploit' },
+  { pageId: 'sqlmap', icon: Database, label: 'SQLMap', path: '/sqlmap' },
   { pageId: 'reports', icon: FileBarChart, label: 'Reports', path: '/reports' },
   { pageId: 'terminal', icon: SquareTerminal, label: 'Terminal', path: '/terminal' },
 ]

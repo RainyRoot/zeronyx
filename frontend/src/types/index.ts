@@ -6,6 +6,7 @@ export type PageId =
   | 'findings'
   | 'proxy'
   | 'metasploit'
+  | 'sqlmap'
   | 'reports'
   | 'terminal'
   | 'settings'
