@@ -28,6 +28,21 @@ _DEFAULTS: dict = {
     "tool_paths": {},       # tool_name → custom binary path
     "scan_timeout": 600,    # seconds
     "data_dir": str(settings.data_dir),
+    # AI provider settings
+    "ai": {
+        "provider": "ollama",
+        "ollama_url": "http://localhost:11434",
+        "ollama_model": "llama3.2",
+        "openai_api_key": "",
+        "openai_model": "gpt-4o",
+        "anthropic_api_key": "",
+        "anthropic_model": "claude-opus-4-6",
+        "sanitize_before_cloud": True,
+        "enabled": True,
+    },
+    # Obsidian auto-sync settings
+    "obsidian_vault_path": "",
+    "obsidian_auto_sync": False,
 }
 
 
@@ -63,12 +78,16 @@ class UserSettingsResponse(BaseModel):
     data_dir: str
     version: str = "0.1.0"
     env: str
+    obsidian_vault_path: str = ""
+    obsidian_auto_sync: bool = False
 
 
 class UserSettingsPatch(BaseModel):
     theme: str | None = None
     tool_paths: dict[str, str] | None = None
     scan_timeout: int | None = None
+    obsidian_vault_path: str | None = None
+    obsidian_auto_sync: bool | None = None
 
 
 class ToolHealthEntry(BaseModel):
@@ -92,6 +111,8 @@ def get_settings():
         scan_timeout=data["scan_timeout"],
         data_dir=data["data_dir"],
         env=settings.env,
+        obsidian_vault_path=data.get("obsidian_vault_path", ""),
+        obsidian_auto_sync=data.get("obsidian_auto_sync", False),
     )
 
 
@@ -115,6 +136,8 @@ def update_settings(payload: UserSettingsPatch):
         scan_timeout=data["scan_timeout"],
         data_dir=data["data_dir"],
         env=settings.env,
+        obsidian_vault_path=data.get("obsidian_vault_path", ""),
+        obsidian_auto_sync=data.get("obsidian_auto_sync", False),
     )
 
 

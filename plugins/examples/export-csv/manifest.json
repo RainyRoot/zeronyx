@@ -1,0 +1,36 @@
+{
+  "id": "export-csv",
+  "name": "CSV Export",
+  "version": "1.0.0",
+  "description": "Exports findings, hosts, or credentials from the active project to a CSV file.",
+  "author": "ZeroNyx Team",
+  "homepage": "https://github.com/zeronyx/plugin-export-csv",
+  "license": "MIT",
+  "zeronyx_min_version": "0.1.0",
+  "type": "both",
+  "permissions": [
+    "findings:read",
+    "hosts:read",
+    "credentials:read",
+    "filesystem:write"
+  ],
+  "entry_backend": "main.py",
+  "entry_frontend": "dist/index.js",
+  "ui_slots": ["toolbar_action"],
+  "hooks": [],
+  "settings": {
+    "output_dir": {
+      "type": "string",
+      "label": "Export Directory",
+      "description": "Directory where CSV files will be saved (default: ~/Desktop)",
+      "required": false,
+      "default": ""
+    },
+    "include_headers": {
+      "type": "boolean",
+      "label": "Include column headers",
+      "required": false,
+      "default": true
+    }
+  }
+}

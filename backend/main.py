@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 
 from backend.config import settings
 from backend import models  # noqa: F401 — registers all models with Base.metadata
-from backend.api.routes import projects, targets, scans, findings, app_settings, export, credentials, proxy, metasploit, shodan, censys, hosts
+from backend.api.routes import projects, targets, scans, findings, app_settings, export, credentials, proxy, metasploit, shodan, censys, hosts, ai, chains, plugins, license, payments, marketplace
 from backend.api.websocket import scan_stream
 
 logging.basicConfig(
@@ -45,11 +45,26 @@ def _check_tools() -> None:
         logger.warning("Tools not found (install to use): %s", ", ".join(missing))
 
 
+def _load_plugins() -> None:
+    """Load enabled plugins at startup."""
+    from backend.database import SessionLocal
+    from backend.services.plugin_manager import get_plugin_manager
+    db = SessionLocal()
+    try:
+        mgr = get_plugin_manager()
+        mgr.load_all_enabled(db)
+    except Exception as exc:
+        logger.warning("Plugin loading encountered errors: %s", exc)
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"ZeroNyx backend starting (env={settings.env})")
     _run_migrations()
     _check_tools()
+    _load_plugins()
     yield
     logger.info("ZeroNyx backend shutting down")
 
@@ -121,6 +136,12 @@ app.include_router(metasploit.router, prefix="/api")
 app.include_router(shodan.router, prefix="/api")
 app.include_router(censys.router, prefix="/api")
 app.include_router(hosts.router, prefix="/api")
+app.include_router(ai.router, prefix="/api")
+app.include_router(chains.router, prefix="/api")
+app.include_router(plugins.router, prefix="/api")
+app.include_router(license.router, prefix="/api")
+app.include_router(payments.router, prefix="/api")
+app.include_router(marketplace.router, prefix="/api")
 
 # WebSocket routers
 app.include_router(scan_stream.router)

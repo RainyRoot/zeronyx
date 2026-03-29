@@ -10,8 +10,11 @@ export type PageId =
   | 'shodan'
   | 'censys'
   | 'hosts'
+  | 'ai'
+  | 'chains'
   | 'reports'
   | 'terminal'
+  | 'plugins'
   | 'settings'
 
 export interface Tab {
@@ -312,4 +315,156 @@ export interface Port {
   service: string | null
   version: string | null
   banner: string | null
+}
+
+// ---------------------------------------------------------------------------
+// AI Analysis
+// ---------------------------------------------------------------------------
+
+export interface AIAnalysis {
+  id: string
+  project_id: string
+  context_type: string
+  context_id: string | null
+  provider: string | null
+  model: string | null
+  prompt_type: string | null
+  response: string | null
+  tokens_used: number | null
+  sanitized: boolean
+  created_at: string
+}
+
+export interface AISettings {
+  provider: 'ollama' | 'openai' | 'anthropic'
+  ollama_url: string
+  ollama_model: string
+  openai_api_key: string
+  openai_model: string
+  anthropic_api_key: string
+  anthropic_model: string
+  sanitize_before_cloud: boolean
+  enabled: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Chains
+// ---------------------------------------------------------------------------
+
+export interface ChainStep {
+  id: string
+  type: 'scan' | 'notify'
+  tool?: string
+  label?: string
+  config: Record<string, unknown>
+  depends_on?: string
+  condition?: string
+  continue_on_error?: boolean
+}
+
+export interface Chain {
+  id: string
+  project_id: string
+  name: string
+  description: string | null
+  steps: ChainStep[]
+  trigger_on: string
+  enabled: boolean
+  last_run: string | null
+  last_status: string | null
+  created_at: string
+}
+
+export interface ChainRun {
+  id: string
+  chain_id: string
+  project_id: string
+  status: string
+  step_results: Record<string, unknown>
+  error: string | null
+  started_at: string | null
+  finished_at: string | null
+  created_at: string
+}
+
+// ---------------------------------------------------------------------------
+// Plugin System
+// ---------------------------------------------------------------------------
+
+export type PluginPermission =
+  | 'scan:read' | 'scan:write'
+  | 'findings:read' | 'findings:write'
+  | 'targets:read' | 'targets:write'
+  | 'credentials:read' | 'credentials:write'
+  | 'hosts:read'
+  | 'proxy:read'
+  | 'settings:read'
+  | 'network:outbound'
+  | 'filesystem:read' | 'filesystem:write'
+
+export type PluginUiSlot =
+  | 'sidebar_nav'
+  | 'dashboard_widget'
+  | 'scan_result_panel'
+  | 'finding_detail_panel'
+  | 'target_panel'
+  | 'toolbar_action'
+  | 'settings_tab'
+  | 'report_section'
+
+export type PluginHook =
+  | 'on_scan_complete'
+  | 'on_finding_created'
+  | 'on_target_added'
+  | 'on_project_opened'
+  | 'on_report_generate'
+
+export type PluginType = 'backend' | 'frontend' | 'both'
+
+export interface PluginSettingSchema {
+  type: 'string' | 'number' | 'boolean' | 'select'
+  label: string
+  description?: string
+  required?: boolean
+  secret?: boolean
+  default?: unknown
+  options?: Array<{ value: string; label: string }>
+}
+
+export interface PluginManifest {
+  id: string
+  name: string
+  version: string
+  description: string
+  author: string
+  homepage?: string
+  license?: string
+  zeronyx_min_version: string
+  type: PluginType
+  permissions: PluginPermission[]
+  entry_backend?: string
+  entry_frontend?: string
+  ui_slots: PluginUiSlot[]
+  hooks: PluginHook[]
+  settings: Record<string, PluginSettingSchema>
+}
+
+export interface Plugin {
+  id: string
+  name: string
+  version: string
+  description: string
+  author: string
+  plugin_type: PluginType
+  install_path: string
+  permissions: PluginPermission[]
+  ui_slots: PluginUiSlot[]
+  hooks: PluginHook[]
+  settings: Record<string, PluginSettingSchema>
+  settings_values: Record<string, unknown>
+  enabled: boolean
+  permissions_granted: boolean
+  installed_at: string
+  updated_at: string
+  error: string | null
 }

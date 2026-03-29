@@ -1,5 +1,6 @@
 import { spawn, ChildProcess } from 'child_process'
-import { join, existsSync } from 'path'
+import { join } from 'path'
+import { existsSync } from 'fs'
 import { app, ipcMain } from 'electron'
 import { is } from '@electron-toolkit/utils'
 
@@ -17,11 +18,15 @@ export class BackendManager {
     ipcMain.handle('backend:getPort', () => this.port)
 
     const pythonPath = this.resolvePythonPath()
-    const scriptPath = this.resolveBackendScript()
+    const cwd = this.resolveBackendCwd()
+    const args = is.dev
+      ? ['-m', 'backend.main', '--port', String(this.port)]
+      : [join(cwd, 'backend', 'main.py'), '--port', String(this.port)]
 
-    console.log(`[BackendManager] Starting: ${pythonPath} ${scriptPath} --port ${this.port}`)
+    console.log(`[BackendManager] Starting: ${pythonPath} ${args.join(' ')} (cwd: ${cwd})`)
 
-    this.process = spawn(pythonPath, [scriptPath, '--port', String(this.port)], {
+    this.process = spawn(pythonPath, args, {
+      cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
@@ -66,11 +71,11 @@ export class BackendManager {
     return process.platform === 'win32' ? 'python' : 'python3'
   }
 
-  private resolveBackendScript(): string {
+  private resolveBackendCwd(): string {
     if (is.dev) {
-      return join(process.cwd(), 'backend', 'main.py')
+      return process.cwd()
     }
-    return join(app.getAppPath(), '..', 'backend', 'main.py')
+    return join(app.getAppPath(), '..')
   }
 
   private async waitForHealthy(): Promise<void> {

@@ -15,6 +15,9 @@ import { SQLMapPage } from '@/pages/SQLMap'
 import { ShodanPage } from '@/pages/Shodan'
 import { CensysPage } from '@/pages/Censys'
 import { HostsPage } from '@/pages/Hosts'
+import { AIPage } from '@/pages/AI'
+import { ChainsPage } from '@/pages/Chains'
+import PluginsPage from '@/pages/Plugins'
 import type { BackendStatus } from '@/types'
 
 const BACKEND_URL = 'http://127.0.0.1:8742'
@@ -58,8 +61,11 @@ export default function App(): JSX.Element {
           <Route path="/shodan" element={<ShodanPage />} />
           <Route path="/censys" element={<CensysPage />} />
           <Route path="/hosts" element={<HostsPage />} />
+          <Route path="/ai" element={<AIPage />} />
+          <Route path="/chains" element={<ChainsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/terminal" element={<TerminalPage />} />
+          <Route path="/plugins" element={<PluginsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

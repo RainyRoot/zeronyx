@@ -3,6 +3,7 @@ import { join } from 'path'
 import { mkdirSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { BackendManager } from './backend-manager'
+import { setupAutoUpdater } from './updater'
 import type { IPty } from 'node-pty'
 
 let mainWindow: BrowserWindow | null = null
@@ -150,6 +151,14 @@ app.whenReady().then(async () => {
 
   setupTerminalIpc()
   setupExportIpc()
+  setupAutoUpdater(() => mainWindow)
+
+  // Open URLs in system browser (used by UpgradeButton)
+  ipcMain.on('shell:openExternal', (_event, url: string) => {
+    if (typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://'))) {
+      shell.openExternal(url)
+    }
+  })
   await backendManager.start()
   createWindow()
 

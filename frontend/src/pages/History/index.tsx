@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef, memo } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useNavigate } from 'react-router-dom'
 import {
   Clock, Search, X, RotateCcw, Trash2,
@@ -386,39 +387,128 @@ export function HistoryPage(): JSX.Element {
           No scans match your filters.
         </div>
       ) : (
-        <div className="bg-[#1a1a1f] border border-[#2a2a32] rounded-xl overflow-hidden">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-[#2a2a32] text-[10px] uppercase tracking-wider text-gray-600">
-                <th className="text-left px-4 py-3">Tool</th>
-                <th className="text-left px-4 py-3">ID</th>
-                <th className="text-left px-4 py-3">Summary</th>
-                <th className="text-left px-4 py-3">Status</th>
-                <th className="text-left px-4 py-3 hidden md:table-cell">Duration</th>
-                <th className="text-left px-4 py-3 hidden lg:table-cell">Started</th>
-                <th className="px-4 py-3 w-20 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#1e1e24]">
-              {filtered.map((scan) => (
-                <ScanRow
-                  key={scan.id}
-                  scan={scan}
-                  isRerunning={rerunning === scan.id}
-                  onClick={() => handleOpen(scan)}
-                  onRerun={() => handleRerun(scan)}
-                  onDelete={() => handleDelete(scan)}
-                />
-              ))}
-            </tbody>
-          </table>
-          {filtered.length < scans.length && (
-            <div className="px-4 py-2 border-t border-[#2a2a32] text-[10px] text-gray-700">
-              Showing {filtered.length} of {scans.length} scans
-            </div>
-          )}
-        </div>
+        <ScanTable
+          filtered={filtered}
+          scans={scans}
+          rerunning={rerunning}
+          onOpen={handleOpen}
+          onRerun={handleRerun}
+          onDelete={handleDelete}
+        />
       )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Scan Table — switches to virtualized rendering for large lists
+// ---------------------------------------------------------------------------
+
+const VIRTUAL_THRESHOLD = 100
+const ROW_HEIGHT = 44
+
+function ScanTable({
+  filtered, scans, rerunning, onOpen, onRerun, onDelete,
+}: {
+  filtered: Scan[]
+  scans: Scan[]
+  rerunning: string | null
+  onOpen: (s: Scan) => void
+  onRerun: (s: Scan) => void
+  onDelete: (s: Scan) => void
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const isLarge = filtered.length > VIRTUAL_THRESHOLD
+
+  const virtualizer = useVirtualizer({
+    count: isLarge ? filtered.length : 0,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 10,
+  })
+
+  const thead = (
+    <thead>
+      <tr className="border-b border-[#2a2a32] text-[10px] uppercase tracking-wider text-gray-600">
+        <th className="text-left px-4 py-3">Tool</th>
+        <th className="text-left px-4 py-3">ID</th>
+        <th className="text-left px-4 py-3">Summary</th>
+        <th className="text-left px-4 py-3">Status</th>
+        <th className="text-left px-4 py-3 hidden md:table-cell">Duration</th>
+        <th className="text-left px-4 py-3 hidden lg:table-cell">Started</th>
+        <th className="px-4 py-3 w-20 text-right">Actions</th>
+      </tr>
+    </thead>
+  )
+
+  const footer = filtered.length < scans.length && (
+    <div className="px-4 py-2 border-t border-[#2a2a32] text-[10px] text-gray-700">
+      Showing {filtered.length} of {scans.length} scans
+    </div>
+  )
+
+  if (!isLarge) {
+    return (
+      <div className="bg-[#1a1a1f] border border-[#2a2a32] rounded-xl overflow-hidden">
+        <table className="w-full text-xs">
+          {thead}
+          <tbody className="divide-y divide-[#1e1e24]">
+            {filtered.map((scan) => (
+              <ScanRow
+                key={scan.id}
+                scan={scan}
+                isRerunning={rerunning === scan.id}
+                onClick={() => onOpen(scan)}
+                onRerun={() => onRerun(scan)}
+                onDelete={() => onDelete(scan)}
+              />
+            ))}
+          </tbody>
+        </table>
+        {footer}
+      </div>
+    )
+  }
+
+  // Virtual path for large lists
+  return (
+    <div className="bg-[#1a1a1f] border border-[#2a2a32] rounded-xl overflow-hidden">
+      <table className="w-full text-xs">
+        {thead}
+      </table>
+      <div ref={scrollRef} className="overflow-auto" style={{ maxHeight: '60vh' }}>
+        <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
+          {virtualizer.getVirtualItems().map((vItem) => {
+            const scan = filtered[vItem.index]
+            return (
+              <div
+                key={scan.id}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: `${vItem.size}px`,
+                  transform: `translateY(${vItem.start}px)`,
+                }}
+              >
+                <table className="w-full text-xs">
+                  <tbody>
+                    <ScanRow
+                      scan={scan}
+                      isRerunning={rerunning === scan.id}
+                      onClick={() => onOpen(scan)}
+                      onRerun={() => onRerun(scan)}
+                      onDelete={() => onDelete(scan)}
+                    />
+                  </tbody>
+                </table>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      {footer}
     </div>
   )
 }
@@ -427,7 +517,7 @@ export function HistoryPage(): JSX.Element {
 // Row
 // ---------------------------------------------------------------------------
 
-function ScanRow({
+const ScanRow = memo(function ScanRow({
   scan, isRerunning, onClick, onRerun, onDelete,
 }: {
   scan: Scan
@@ -493,4 +583,4 @@ function ScanRow({
       </td>
     </tr>
   )
-}
+})

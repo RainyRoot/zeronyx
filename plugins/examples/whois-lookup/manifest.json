@@ -1,0 +1,28 @@
+{
+  "id": "whois-lookup",
+  "name": "WHOIS Lookup",
+  "version": "1.0.0",
+  "description": "Automatically performs WHOIS lookups for newly added targets and attaches the results as findings.",
+  "author": "ZeroNyx Team",
+  "homepage": "https://github.com/zeronyx/plugin-whois-lookup",
+  "license": "MIT",
+  "zeronyx_min_version": "0.1.0",
+  "type": "backend",
+  "permissions": [
+    "targets:read",
+    "findings:write",
+    "network:outbound"
+  ],
+  "entry_backend": "main.py",
+  "ui_slots": [],
+  "hooks": ["on_target_added"],
+  "settings": {
+    "whois_server": {
+      "type": "string",
+      "label": "WHOIS Server",
+      "description": "Custom WHOIS server (leave blank for auto)",
+      "required": false,
+      "default": ""
+    }
+  }
+}

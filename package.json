@@ -1,12 +1,13 @@
 {
   "name": "zeronyx",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "private": true,
   "main": "out/main/index.js",
   "workspaces": [
     "frontend"
   ],
   "scripts": {
+    "start": "bash scripts/dev.sh",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "build:linux": "npm run build && electron-builder --linux",
@@ -69,6 +70,12 @@
       "target": [
         "dmg"
       ]
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "RainyRoot",
+      "repo": "zeronyx",
+      "releaseType": "release"
     }
   }
 }

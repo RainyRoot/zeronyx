@@ -207,6 +207,18 @@ class ScanService:
             scan.id, len(result.hosts), len(result.ports), len(result.findings), len(result.credentials),
         )
 
+        # Obsidian auto-sync hook (4.8)
+        try:
+            from backend.api.routes.app_settings import _load_user_settings
+            user_settings = _load_user_settings()
+            vault_path = user_settings.get("obsidian_vault_path", "")
+            if user_settings.get("obsidian_auto_sync") and vault_path:
+                from backend.services.obsidian_sync_service import ObsidianSyncService
+                ObsidianSyncService(vault_path).sync_scan(scan.id, self.db)
+                logger.info("[scan:%s] Obsidian auto-sync complete", scan.id)
+        except Exception as exc:
+            logger.warning("[scan:%s] Obsidian auto-sync skipped: %s", scan.id, exc)
+
     def _upsert_host(self, project_id: str, data: dict) -> Host:
         ip = data.get("ip", "")
         host = (
