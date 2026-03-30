@@ -1,8 +1,8 @@
 # ZeroNyx
 
-**From Zero to Pwned** — a desktop-based all-in-one pentesting suite for professionals.
+**From Zero to Pwned** - a desktop-based all-in-one pentesting suite for professionals.
 
-ZeroNyx unifies your entire pentest workflow in a single application: reconnaissance, vulnerability scanning, exploitation, credential management, and report generation — all backed by a local Python/FastAPI engine and a React/Electron UI.
+ZeroNyx unifies your entire pentest workflow in a single application: reconnaissance, vulnerability scanning, exploitation, credential management, and report generation - all backed by a local Python/FastAPI engine and a React/Electron UI.
 
 ---
 
@@ -35,7 +35,7 @@ Grab the latest release from [GitHub Releases](https://github.com/RainyRoot/zero
 
 ### 2. Install external tools
 
-ZeroNyx wraps external tools as subprocesses — install them via your package manager:
+ZeroNyx wraps external tools as subprocesses - install them via your package manager:
 
 ```bash
 # Kali / Debian / Ubuntu
