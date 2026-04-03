@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     # Global app database filename (inside data_dir)
     db_name: str = "app.db"
 
+    # Docker / web mode: serve the built React frontend as static files
+    serve_frontend: bool = False
+    frontend_dir: str = "/app/frontend-dist"
+
     @property
     def db_path(self) -> Path:
         self.data_dir.mkdir(parents=True, exist_ok=True)

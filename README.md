@@ -45,7 +45,59 @@ sudo apt install nmap nuclei nikto gobuster hydra sqlmap exploitdb
 brew install nmap hydra sqlmap
 ```
 
-### 3. Run from source (development)
+### 3. Docker (no installation required)
+
+The Docker image runs the full ZeroNyx web UI + backend in a single container. Open your browser at `http://localhost:8742` once it starts.
+
+**Docker Compose (recommended):**
+
+```bash
+curl -O https://raw.githubusercontent.com/RainyRoot/zeronyx/main/docker-compose.yml
+docker compose up -d
+```
+
+**Plain Docker:**
+
+```bash
+docker pull ghcr.io/rainyroot/zeronyx:latest
+docker run -d \
+  --name zeronyx \
+  -p 8742:8742 \
+  -v zeronyx-data:/data \
+  ghcr.io/rainyroot/zeronyx:latest
+```
+
+**Available image tags:**
+
+| Tag | Source |
+|---|---|
+| `latest` | Latest stable build from `main` |
+| `dev` | Latest development build from `dev` |
+| `sha-<commit>` | Specific commit build |
+
+**Data persistence:**
+
+All project databases and settings are stored in the `/data` volume. Mount it to a host path to keep data across container recreations:
+
+```bash
+docker run -d \
+  --name zeronyx \
+  -p 8742:8742 \
+  -v /path/on/host:/data \
+  ghcr.io/rainyroot/zeronyx:latest
+```
+
+**Configuration via environment variables:**
+
+| Variable | Default | Description |
+|---|---|---|
+| `ZERONYX_PORT` | `8742` | Port the server listens on |
+| `ZERONYX_DATA_DIR` | `/data` | Where SQLite databases are stored |
+| `ZERONYX_ENV` | `production` | Set to `development` to enable API docs at `/docs` |
+
+> **Note:** The Docker image includes the web UI and backend API only. Scanning tools (nmap, nuclei, etc.) are not bundled — install them in the container or use the desktop Electron release for full tool integration.
+
+### 4. Run from source (development)
 
 ```bash
 git clone https://github.com/RainyRoot/zeronyx.git

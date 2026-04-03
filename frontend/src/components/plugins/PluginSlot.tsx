@@ -9,8 +9,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import type { PluginUiSlot } from '@/types'
 import { usePluginStore } from '@/stores/pluginStore'
+import { backendBase } from '@/lib/backend'
 
-const BASE = 'http://127.0.0.1:8742'
+const BASE = backendBase()
 
 interface PluginComponentProps {
   pluginId: string

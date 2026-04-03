@@ -13,6 +13,7 @@
     "build:linux": "npm run build && electron-builder --linux",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "npm run build && electron-builder --mac",
+    "build:docker": "vite build --config frontend/vite.config.ts",
     "preview": "electron-vite preview",
     "setup": "bash scripts/setup.sh"
   },

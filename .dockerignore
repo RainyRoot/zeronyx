@@ -1,0 +1,40 @@
+# Node
+node_modules/
+frontend/node_modules/
+npm-debug.log*
+
+# Python
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+**/*.pyc
+**/*.pyo
+*.egg-info/
+
+# Build outputs
+out/
+release/
+dist/
+frontend/dist/
+
+# Dev / editor
+.env
+.env.*
+*.local
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Git
+.git/
+.github/
+
+# Docs / website (not needed in image)
+docs/
+website/
+plugins/
+
+# Test artifacts
+coverage/
+.pytest_cache/

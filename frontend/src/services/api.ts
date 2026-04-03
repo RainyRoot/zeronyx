@@ -4,8 +4,9 @@
  */
 
 import type { Project, ApiPaginatedResponse, Scan, ScanDetail, NmapProfile, Credential } from '@/types'
+import { backendBase } from '@/lib/backend'
 
-const BASE = 'http://127.0.0.1:8742'
+const BASE = backendBase()
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
@@ -277,7 +278,7 @@ export const pluginsApi = {
   installFromFile(file: File): Promise<Plugin> {
     const form = new FormData()
     form.append('file', file)
-    return fetch(`${BASE}/api/plugins/install`, { method: 'POST', body: form })
+    return fetch(`${backendBase()}/api/plugins/install`, { method: 'POST', body: form })
       .then(async (res) => {
         if (!res.ok) {
           const payload = await res.json().catch(() => null)

@@ -19,8 +19,9 @@ import { AIPage } from '@/pages/AI'
 import { ChainsPage } from '@/pages/Chains'
 import PluginsPage from '@/pages/Plugins'
 import type { BackendStatus } from '@/types'
+import { backendBase } from '@/lib/backend'
 
-const BACKEND_URL = 'http://127.0.0.1:8742'
+const BACKEND_URL = backendBase()
 const HEALTH_INTERVAL_MS = 5000
 
 export default function App(): JSX.Element {

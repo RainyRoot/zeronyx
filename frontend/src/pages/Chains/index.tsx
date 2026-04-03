@@ -15,8 +15,9 @@ import {
 import { useProjectStore } from '@/stores/projectStore'
 import { cn } from '@/lib/utils'
 import type { Chain, ChainRun } from '@/types'
+import { backendBase } from '@/lib/backend'
 
-const BASE = 'http://127.0.0.1:8742'
+const BASE = backendBase()
 
 // ---------------------------------------------------------------------------
 // Types

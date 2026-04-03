@@ -8,8 +8,9 @@ import { useProxyStore, type PendingFlow, type FlowModifications } from '@/store
 import { useProjectStore } from '@/stores/projectStore'
 import { cn } from '@/lib/utils'
 import type { ProxyRequest } from '@/types'
+import { backendWsBase } from '@/lib/backend'
 
-const WS_URL = 'ws://127.0.0.1:8742/api/proxy/ws'
+const WS_URL = `${backendWsBase()}/api/proxy/ws`
 const PING_MS = 25_000
 
 // ──────────────────────────────────────────────────────────────────────────────

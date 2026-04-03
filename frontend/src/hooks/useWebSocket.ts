@@ -1,7 +1,8 @@
 import { useEffect, useRef, useCallback } from 'react'
 import type { WsServerMessage, WsClientMessage, WsStatus } from '@/types'
+import { backendWsBase } from '@/lib/backend'
 
-const BACKEND_WS_BASE = 'ws://127.0.0.1:8742'
+const BACKEND_WS_BASE = backendWsBase()
 const MAX_RETRIES = 10
 const BASE_DELAY_MS = 1_000
 const MAX_DELAY_MS = 30_000
