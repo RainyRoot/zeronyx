@@ -1,6 +1,7 @@
 import { create } from 'zustand'
+import { backendBase } from '@/lib/backend'
 
-const BASE = 'http://127.0.0.1:8742'
+const BASE = backendBase()
 
 export interface LicenseStatus {
   activated: boolean

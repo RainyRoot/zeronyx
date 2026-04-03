@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { backendBase } from '@/lib/backend'
 import {
   Play, Square, Trash2, Terminal, Server, LayoutList,
   ChevronDown, AlertCircle, CheckCircle2, Clock, Loader2,
@@ -6,7 +7,7 @@ import {
   BrainCircuit, Copy,
 } from 'lucide-react'
 
-const BASE_API = 'http://127.0.0.1:8742'
+const BASE_API = backendBase()
 import { useProjectStore } from '@/stores/projectStore'
 import { useTargetStore } from '@/stores/targetStore'
 import { useScanStore } from '@/stores/scanStore'

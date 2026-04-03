@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import type { ProxyRequest } from '@/types'
+import { backendBase } from '@/lib/backend'
 
-const API = 'http://127.0.0.1:8742'
+const API = backendBase()
 
 // ---------------------------------------------------------------------------
 // Types

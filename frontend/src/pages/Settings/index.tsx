@@ -8,8 +8,9 @@ import { cn } from '@/lib/utils'
 import { useUpdateState } from '@/components/ui/update-banner'
 import { useLicenseStore } from '@/stores/licenseStore'
 import { UpgradeButton } from '@/components/common/UpgradeButton'
+import { backendBase } from '@/lib/backend'
 
-const BASE = 'http://127.0.0.1:8742'
+const BASE = backendBase()
 
 // ---------------------------------------------------------------------------
 // Types

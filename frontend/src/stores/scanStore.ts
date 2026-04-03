@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { scansApi } from '@/services/api'
 import type { Scan, ScanProfile, Host, Port, GobusterPath } from '@/types'
+import { backendBase } from '@/lib/backend'
 
 interface ScanResults {
   hosts: Host[]
@@ -114,14 +115,14 @@ export const useScanStore = create<ScanState>((set, get) => ({
     try {
       if (tool === 'nmap') {
         // Nmap: fetch structured hosts + ports
-        const res = await fetch(`http://127.0.0.1:8742/api/scans/${scanId}/results`)
+        const res = await fetch(`${backendBase()}/api/scans/${scanId}/results`)
         if (res.ok) {
           const data = await res.json() as { hosts: Host[]; ports: Port[] }
           set({ results: { hosts: data.hosts, ports: data.ports, parsed: null } })
         }
       } else {
         // All other tools: fetch scan detail for parsed output
-        const res = await fetch(`http://127.0.0.1:8742/api/scans/${scanId}`)
+        const res = await fetch(`${backendBase()}/api/scans/${scanId}`)
         if (res.ok) {
           const data = await res.json() as { parsed: Record<string, unknown> | null }
           set({ results: { hosts: [], ports: [], parsed: data.parsed ?? null } })

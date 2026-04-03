@@ -3,8 +3,9 @@ import { BookOpen, CheckCircle2, XCircle, Loader2, FolderOpen, BrainCircuit, Cop
 import { useProjectStore } from '@/stores/projectStore'
 import { exportApi } from '@/services/api'
 import { cn } from '@/lib/utils'
+import { backendBase } from '@/lib/backend'
 
-const BASE_API = 'http://127.0.0.1:8742'
+const BASE_API = backendBase()
 
 type ExportState = 'idle' | 'fetching' | 'writing' | 'done' | 'error'
 

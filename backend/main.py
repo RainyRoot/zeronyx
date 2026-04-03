@@ -1,6 +1,7 @@
 import argparse
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import uvicorn
 from alembic import command as alembic_command
@@ -9,6 +10,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from backend.config import settings
 from backend import models  # noqa: F401 — registers all models with Base.metadata
@@ -145,6 +147,16 @@ app.include_router(marketplace.router, prefix="/api")
 
 # WebSocket routers
 app.include_router(scan_stream.router)
+
+# Docker/web mode: serve the built React frontend as a static SPA.
+# Must be mounted LAST so API routes take priority.
+if settings.serve_frontend:
+    _frontend_path = Path(settings.frontend_dir)
+    if _frontend_path.exists():
+        app.mount("/", StaticFiles(directory=str(_frontend_path), html=True), name="frontend")
+        logger.info("Serving frontend from %s", _frontend_path)
+    else:
+        logger.warning("ZERONYX_SERVE_FRONTEND=true but frontend_dir %s does not exist", _frontend_path)
 
 
 if __name__ == "__main__":

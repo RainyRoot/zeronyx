@@ -4,6 +4,7 @@
  */
 import { Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { backendBase } from '@/lib/backend'
 
 declare global {
   interface Window {
@@ -13,7 +14,7 @@ declare global {
   }
 }
 
-const BASE = 'http://127.0.0.1:8742'
+const BASE = backendBase()
 
 interface Props {
   tier?: 'pro' | 'enterprise'

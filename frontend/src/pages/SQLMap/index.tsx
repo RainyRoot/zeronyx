@@ -9,9 +9,10 @@ import { useProjectStore } from '@/stores/projectStore'
 import { cn } from '@/lib/utils'
 import type { ProxyRequest } from '@/types'
 import type { SqlmapConfig } from '@/stores/sqlmapStore'
+import { backendBase, backendWsBase } from '@/lib/backend'
 
-const API      = 'http://127.0.0.1:8742'
-const WS_BASE  = 'ws://127.0.0.1:8742/ws/scan'
+const API      = backendBase()
+const WS_BASE  = `${backendWsBase()}/ws/scan`
 
 // ---------------------------------------------------------------------------
 // Constants

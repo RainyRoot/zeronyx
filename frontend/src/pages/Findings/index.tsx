@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { backendBase } from '@/lib/backend'
 import {
   ShieldAlert, Plus, Trash2, X, Search, Filter,
   AlertTriangle, AlertCircle, Info, CheckCircle,
@@ -214,7 +215,7 @@ function AddFindingModal({
 // Finding detail panel
 // ---------------------------------------------------------------------------
 
-const BASE_API = 'http://127.0.0.1:8742'
+const BASE_API = backendBase()
 
 function DetailPanel({ finding, onClose }: { finding: Finding; onClose: () => void }): JSX.Element {
   const { updateFinding, deleteFinding, fetchStats } = useFindingStore()
