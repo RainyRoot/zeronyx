@@ -2,7 +2,7 @@ name: Docker
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -30,8 +30,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/zeronyx
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
+            type=raw,value=latest
             type=sha,prefix=sha-
 
       - name: Set up Docker Buildx
