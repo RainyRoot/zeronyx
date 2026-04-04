@@ -14,6 +14,7 @@ import tailwindcss from 'tailwindcss'
 import autoprefixer from 'autoprefixer'
 
 export default defineConfig({
+  root: resolve(__dirname),
   build: {
     outDir: resolve(__dirname, '../out/renderer'),
     emptyOutDir: true,
