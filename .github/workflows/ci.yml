@@ -84,8 +84,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Electron app
-        run: npm run build:linux
+      - name: Build Electron app (AppImage only)
+        run: npm run build && electron-builder --linux AppImage
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -93,5 +93,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: zeronyx-linux
-          path: dist/*.AppImage
+          path: release/*.AppImage
           retention-days: 14
