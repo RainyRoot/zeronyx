@@ -85,7 +85,7 @@ jobs:
         run: npm ci
 
       - name: Build Electron app (AppImage only)
-        run: npm run build && electron-builder --linux AppImage
+        run: npm run build && npx electron-builder --linux AppImage
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
