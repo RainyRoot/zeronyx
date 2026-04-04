@@ -9,10 +9,11 @@ WORKDIR /build
 COPY package.json package-lock.json ./
 COPY frontend/package.json ./frontend/
 
-# Skip downloading the Electron binary — we only need the Vite/React build tooling
+# Skip Electron binary download and native addon compilation (node-pty etc.)
+# — the Docker build only needs the Vite/React toolchain
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 # Copy source files needed for the frontend build
 COPY frontend/ ./frontend/
