@@ -28,6 +28,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install setuptools (node-gyp needs distutils, removed in Python 3.12)
+        run: pip install setuptools
+
       - name: Install Node dependencies
         run: npm ci
 
