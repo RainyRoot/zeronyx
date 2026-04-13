@@ -1,6 +1,6 @@
 # ZeroNyx
 
-**From Zero to Pwned** - a desktop-based all-in-one pentesting suite for professionals.
+**From Zero to Pwned** a desktop-based all-in-one pentesting suite for professionals.
 
 ZeroNyx unifies your entire pentest workflow in a single application: reconnaissance, vulnerability scanning, exploitation, credential management, and report generation - all backed by a local Python/FastAPI engine and a React/Electron UI.
 
