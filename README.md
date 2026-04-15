@@ -35,7 +35,7 @@ Grab the latest release from [GitHub Releases](https://github.com/RainyRoot/zero
 
 ### 2. Install external tools
 
-ZeroNyx wraps external tools as subprocesses - install them via your package manager:
+ZeroNyx wraps external tools as subprocesses - install them via your package manager: 
 
 ```bash
 # Kali / Debian / Ubuntu
